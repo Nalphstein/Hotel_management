@@ -283,13 +283,13 @@ export default function ProductDetailPage() {
   const renderOptionSection = (optionType: string, options: ProductOption[], label: string) => {
     return (
       <div key={optionType}>
-        <h3 className="text-lg font-medium text-gray-900 mb-3">{label}</h3>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2 sm:mb-3">{label}</h3>
         <div className="flex flex-wrap gap-3">
           {options.map((option) => (
             <button
               key={option.id}
               onClick={() => handleOptionChange(optionType, option.id)}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border transition-colors text-sm sm:text-base ${
                 selectedOptions[optionType] === option.id
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
@@ -297,7 +297,7 @@ export default function ProductDetailPage() {
             >
               {option.label}
               {option.priceModifier > 0 && (
-                <span className="ml-1 text-sm text-gray-500">
+                <span className="ml-1 text-xs sm:text-sm text-gray-500">
                   (+₦{option.priceModifier.toLocaleString()})
                 </span>
               )}
@@ -334,21 +334,21 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Breadcrumb */}
-        <nav className="mb-6">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+        <nav className="mb-4 sm:mb-6">
+          <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-500">
             <Link href="/dashboard" className="hover:text-gray-700">Home</Link>
             <span>›</span>
             <Link href="/dashboard" className="hover:text-gray-700">{product.category}</Link>
             <span>›</span>
-            <span className="text-gray-900">{product.name}</span>
+            <span className="text-gray-900 truncate max-w-[100px] sm:max-w-none">{product.name}</span>
           </div>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12">
           {/* Product Image */}
-          <div className="bg-white rounded-lg p-8">
+          <div className="bg-white rounded-lg p-4 sm:p-6 md:p-8">
             <img 
               src={product.image} 
               alt={product.name}
@@ -362,8 +362,8 @@ export default function ProductDetailPage() {
           {/* Product Details */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-              <p className="text-gray-600 leading-relaxed">{product.description}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+              <p className="text-gray-600 leading-relaxed text-sm sm:text-base">{product.description}</p>
             </div>
 
             {/* Dynamic Options Rendering */}
@@ -380,10 +380,10 @@ export default function ProductDetailPage() {
             {/* Price and Buy Button */}
             <div className="border-t pt-6">
               <div className="flex items-center justify-between mb-6">
-                <div className="text-3xl font-bold text-gray-900">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                   ₦ {calculatePrice().toLocaleString()}
                 </div>
-                <button className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                <button className="bg-blue-600 text-white px-6 py-2 sm:px-8 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base">
                   Buy now
                 </button>
               </div>
@@ -391,12 +391,12 @@ export default function ProductDetailPage() {
 
             {/* Key Features */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Key Features</h3>
-              <ul className="space-y-2">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3">Key Features</h3>
+              <ul className="space-y-1.5 sm:space-y-2">
                 {product.features.map((feature, index) => (
                   <li key={index} className="flex items-start">
-                    <span className="text-green-500 mr-2">•</span>
-                    <span className="text-gray-600">{feature}</span>
+                    <span className="text-green-500 mr-2 text-sm">•</span>
+                    <span className="text-gray-600 text-sm sm:text-base">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -405,13 +405,13 @@ export default function ProductDetailPage() {
         </div>
 
         {/* You might also like */}
-        <div className="mt-16">
+        <div className="mt-12 sm:mt-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-8">You might also like</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {/* Mock related products */}
             {[1, 2, 3].map((item) => (
-              <div key={item} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div className="w-full h-48 bg-gray-200 rounded-lg mb-4"></div>
+              <div key={item} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+                <div className="w-full h-32 sm:h-40 md:h-48 bg-gray-200 rounded-lg mb-3 sm:mb-4"></div>
                 <div className="flex items-center mb-2">
                   <div className="flex text-yellow-400">
                     {[...Array(5)].map((_, i) => (
@@ -420,11 +420,11 @@ export default function ProductDetailPage() {
                   </div>
                   <span className="text-sm text-gray-500 ml-2">4.8</span>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Sample Product {item}</h3>
-                <p className="text-sm text-gray-600 mb-3">Product description here</p>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Sample Product {item}</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">Product description here</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">₦ 2,700,000</span>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                  <span className="text-base sm:text-lg font-bold text-gray-900">₦ 2,700,000</span>
+                  <button className="bg-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm">
                     Buy now
                   </button>
                 </div>

@@ -164,45 +164,45 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Greeting */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-normal text-gray-700">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-normal text-gray-700">
             Hello {userName},
           </h1>
         </div>
 
         {/* Highlight of the week */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Highlight of the week!</h2>
-              <h3 className="text-lg font-semibold text-gray-800 mb-1">Chowdeck jollof rice</h3>
-              <p className="text-gray-600 text-sm mb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="flex-1 mb-4 md:mb-0 md:pr-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Highlight of the week!</h2>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1">Chowdeck jollof rice</h3>
+              <p className="text-gray-600 text-sm mb-3 sm:mb-4">
                 Enjoy the delicious delivery with Chowdeck. Order now!
               </p>
-              <div className="mb-4">
-                <span className="text-lg font-bold text-gray-900">Starting from ₦ 2500</span>
+              <div className="mb-3 sm:mb-4">
+                <span className="text-base sm:text-lg font-bold text-gray-900">Starting from ₦ 2500</span>
               </div>
               <Link href="/dashboard/product/jollof-rice">
-                <button className="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <button className="bg-gray-800 text-white px-4 py-2 sm:px-6 sm:py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base">
                   Get it now!
                 </button>
               </Link>
             </div>
-            <div className="ml-8">
-              <div className="w-48 h-32 bg-gradient-to-br from-orange-200 to-red-200 rounded-full flex items-center justify-center">
-                <span className="text-6xl">🍛</span>
+            <div className="md:ml-8 mt-4 md:mt-0 flex justify-center">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 bg-gradient-to-br from-orange-200 to-red-200 rounded-full flex items-center justify-center">
+                <span className="text-4xl sm:text-5xl md:text-6xl">🍛</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Category Navigation */}
-        <div className="flex space-x-4 mb-8">
+        <div className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-6 py-2 rounded-full transition-colors ${
+              className={`px-4 py-2 sm:px-6 sm:py-2 rounded-full transition-colors text-sm sm:text-base ${
                 activeCategory === category
                   ? 'bg-gray-800 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -214,21 +214,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
           {currentProducts.map((product) => (
             <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-              <div className="h-48 bg-gray-100 flex items-center justify-center">
-                <span className="text-6xl">{product.image}</span>
+              <div className="h-32 sm:h-40 md:h-48 bg-gray-100 flex items-center justify-center">
+                <span className="text-4xl sm:text-5xl md:text-6xl">{product.image}</span>
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
-                <p className="text-sm text-gray-600 mb-3">{product.description}</p>
-                <div className="flex items-center mb-3">
+              <div className="p-3 sm:p-4">
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">{product.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-3">{product.description}</p>
+                <div className="flex items-center mb-2 sm:mb-3">
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
                       <svg
                         key={i}
-                        className={`w-4 h-4 ${
+                        className={`w-3 h-3 sm:w-4 sm:h-4 ${
                           i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'
                         }`}
                         fill="currentColor"
@@ -237,13 +237,13 @@ export default function DashboardPage() {
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                     ))}
-                    <span className="ml-2 text-sm text-gray-600">({product.reviews})</span>
+                    <span className="ml-1 text-xs sm:ml-2 sm:text-sm text-gray-600">({product.reviews})</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">{product.price}</span>
+                  <span className="text-base sm:text-lg font-bold text-gray-900">{product.price}</span>
                   <Link href={`/dashboard/product/${product.id}`}>
-                    <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                    <button className="bg-gray-800 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm">
                       Buy now
                     </button>
                   </Link>
