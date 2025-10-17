@@ -16,27 +16,20 @@ const VendorDashboard = () => {
           <p className="text-gray-600 mt-1">Manage your store and track performance</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-black">
           <StoreCard 
-            title="Offline Store" 
+            title="Store" 
             subtitle="Get locally with ease" 
             amount="$14,590" 
             percentage={7.2} 
             trend="up" 
             type="From last month" 
           />
-          <StoreCard 
-            title="Online Store" 
-            subtitle="Get locally with ease" 
-            amount="$6,284" 
-            percentage={1.8} 
-            trend="up" 
-            type="From last month" 
-          />
+
           <ChatPerformanceCard />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 text-black">
           <div className="lg:col-span-2">
             <SalesOverviewCard />
           </div>
@@ -45,7 +38,7 @@ const VendorDashboard = () => {
           </div>
         </div>
         
-        <div className="mt-6">
+        <div className="mt-6 text-gray-900">
           <ProductTransactionTable />
         </div>
       </div>

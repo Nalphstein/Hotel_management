@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SearchIcon, BellIcon, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -12,6 +12,7 @@ interface VendorLayoutProps {
 const VendorLayout = ({ children }: VendorLayoutProps) => {
   const pathname = usePathname();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [vendorInitials, setVendorInitials] = useState('JD'); // Default to 'JD' if no name is found
   
   // Extract the vendor section from the pathname
   const isActive = (path: string) => {
@@ -21,6 +22,22 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
     return pathname?.startsWith(path);
   };
 
+  // Get vendor initials from user data stored in localStorage
+  useEffect(() => {
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      try {
+        const parsedData = JSON.parse(userData);
+        const fullName = `${parsedData.username} ${parsedData.othername}`;
+        // Get first two letters of the full name
+        const initials = fullName.substring(0, 2).toUpperCase();
+        setVendorInitials(initials);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-white border-b border-gray-200">
@@ -28,13 +45,11 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
               <Link href="/vendor" className="flex items-center">
-                <div className="text-indigo-600 mr-2">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M8 14L12 10L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <h1 className="text-xl font-bold">Vendor Dashboard</h1>
+                 <div className="w-8 h-8  rounded-full flex items-center justify-center mr-3">
+                <img src="/Frame.svg" alt="Horizon Logo" />
+                {/* <span className="text-white text-sm font-bold">H</span> */}
+              </div>
+                <h1 className="text-xl font-bold text-black">Horizon</h1>
               </Link>
               <nav className="hidden md:flex items-center space-x-1">
                 <Link 
@@ -79,16 +94,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="relative hidden md:block">
-                <input 
-                  type="text" 
-                  placeholder="Search Anything..." 
-                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
-                />
-                <div className="absolute left-3 top-2.5 text-gray-400">
-                  <SearchIcon size={16} />
-                </div>
-              </div>
+      
               <button className="p-2 text-gray-500 hover:text-gray-700">
                 <BellIcon size={20} />
               </button>
@@ -97,7 +103,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                   className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-medium"
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                 >
-                  JD
+                  {vendorInitials}
                 </button>
                 {showProfileMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
@@ -111,7 +117,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                     <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Settings
                     </a>
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Sign out
                     </a>
                   </div>

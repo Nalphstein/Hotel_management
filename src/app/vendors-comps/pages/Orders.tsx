@@ -2,7 +2,34 @@ import React, { useState } from 'react';
 import { SearchIcon, FilterIcon, ArrowUpDownIcon, EyeIcon, DownloadIcon } from 'lucide-react';
 import OrderDetailsModal from '../components/orders/OrderDetailsModal';
 // Mock order data
-const initialOrders = [{
+interface OrderItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface ShippingAddress {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
+interface Order {
+  id: string;
+  customer: string;
+  email: string;
+  date: string;
+  total: number;
+  status: string;
+  items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  paymentMethod: string;
+}
+
+const initialOrders: Order[] = [{
   id: 'ORD-2025-0001',
   customer: 'John Smith',
   email: 'john@example.com',
@@ -143,7 +170,7 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('date-desc');
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) || order.customer.toLowerCase().includes(searchTerm.toLowerCase()) || order.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
@@ -157,7 +184,7 @@ const Orders = () => {
     return 0;
   });
   const statuses = ['All', 'Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
-  const getStatusColor = status => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completed':
         return 'bg-green-100 text-green-800';
@@ -173,13 +200,13 @@ const Orders = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  const handleViewOrder = order => {
+  const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
   };
   const handleCloseModal = () => {
     setSelectedOrder(null);
   };
-  const updateOrderStatus = (orderId, newStatus) => {
+  const updateOrderStatus = (orderId: string, newStatus: string) => {
     setOrders(orders.map(order => order.id === orderId ? {
       ...order,
       status: newStatus
@@ -201,7 +228,7 @@ const Orders = () => {
         <div className="p-4 border-b border-gray-200">
           <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
             <div className="relative flex-grow">
-              <input type="text" placeholder="Search by order ID, customer name or email..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <input type="text" placeholder="Search by order ID, customer name or email..." className="text-black w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <div className="absolute left-3 top-2.5 text-gray-400">
                 <SearchIcon size={16} />
               </div>
@@ -247,7 +274,7 @@ const Orders = () => {
             </thead>
             <tbody>
               {sortedOrders.map(order => <tr key={order.id} className="border-b border-gray-100 text-sm hover:bg-gray-50">
-                  <td className="px-4 py-4 font-medium">{order.id}</td>
+                  <td className="px-4 py-4 font-medium text-black">{order.id}</td>
                   <td className="px-4 py-4">
                     <div>
                       <p className="font-medium text-gray-800">
@@ -259,7 +286,7 @@ const Orders = () => {
                   <td className="px-4 py-4 text-gray-600">
                     {new Date(order.date).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-4 font-medium">
+                  <td className="px-4 py-4 font-medium text-black">
                     ${order.total.toFixed(2)}
                   </td>
                   <td className="px-4 py-4">
@@ -281,7 +308,7 @@ const Orders = () => {
             <p className="text-gray-500">No orders found.</p>
           </div>}
       </div>
-      {selectedOrder && <OrderDetailsModal order={selectedOrder} onClose={handleCloseModal} onUpdateStatus={newStatus => updateOrderStatus(selectedOrder.id, newStatus)} />}
+      {selectedOrder && <OrderDetailsModal order={selectedOrder} onClose={handleCloseModal} onUpdateStatus={(newStatus: string) => updateOrderStatus(selectedOrder.id, newStatus)} />}
     </div>;
 };
 export default Orders;

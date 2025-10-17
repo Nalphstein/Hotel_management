@@ -53,8 +53,8 @@ export default function SignupPage() {
       
       // Redirect based on user type
       if (formData.userType === 'vendor') {
-        // Redirect to vendor dashboard for vendors
-        window.location.href = '/vendor';
+        // Redirect to profile page for vendors to complete their profile
+        window.location.href = '/vendor/profile';
       } else {
         // Redirect to preferences page for regular users
         window.location.href = '/preferences';
