@@ -134,7 +134,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
       </main>
       
       {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12 mt-12">
+      <footer className="bg-slate-900 text-white-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-4xl mb-6 mx-auto leading-relaxed">
             Horizon is solely to help you find vendors for anything you desire. Built for students, by students. A safe and trusted community to help you save and earn on campus.
