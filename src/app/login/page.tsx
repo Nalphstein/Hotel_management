@@ -21,16 +21,37 @@ export default function LoginPage() {
     console.log('Login attempt:', formData);
     
     // Simulate successful login
+    // In a real app, you would get user type from the backend
+    const userData = localStorage.getItem('userData');
+    let userType = 'user'; // Default to user
+    
+    if (userData) {
+      try {
+        const parsedUserData = JSON.parse(userData);
+        userType = parsedUserData.userType || 'user';
+      } catch (error) {
+        console.log('Error parsing user data, defaulting to user type');
+      }
+    }
+    
     localStorage.setItem('userData', JSON.stringify({
-      username: formData.username
+      username: formData.username,
+      userType: userType
     }));
     
     // Simulate authentication token for existing user
     localStorage.setItem('authToken', 'existing_user_token');
     
-    // Redirect existing users directly to dashboard
-    window.location.href = '/dashboard';
+    // Redirect based on user type
+    if (userType === 'vendor') {
+      // Redirect to vendor dashboard for vendors
+      window.location.href = '/vendor';
+    } else {
+      // Redirect to regular dashboard for users
+      window.location.href = '/dashboard';
+    }
   };
+  
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <div className="flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
@@ -107,31 +128,33 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                {/* Forgot Password and Login Button */}
-                <div className="flex justify-between items-center pt-2">
+                {/* Remember me and Forgot Password */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center">
+                    <input
+                      id="remember-me"
+                      name="remember-me"
+                      type="checkbox"
+                      className="h-4 w-4 text-orange-400 focus:ring-orange-500 border-gray-300 rounded mr-2"
+                    />
+                    <label htmlFor="remember-me" className="text-sm text-gray-700">
+                      Remember me
+                    </label>
+                  </div>
+                  
                   <a href="/forgot-password" className="text-orange-400 hover:text-orange-500 text-sm">
                     Forgot password?
                   </a>
-                  
+                </div>
+
+                {/* Login Button */}
+                <div className="pt-4">
                   <button
                     type="submit"
-                    className="bg-gray-800 text-white px-8 py-4 rounded-lg hover:bg-gray-700 transition-colors font-medium w-70"
+                    className="bg-gray-800 text-white px-8 py-4 rounded-lg hover:bg-gray-700 transition-colors font-medium w-full"
                   >
                     Login
                   </button>
-                </div>
-
-                {/* Remember me */}
-                <div className="flex items-center pt-4 ">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-orange-400 focus:ring-orange-500 border-gray-300 rounded mr-2"
-                  />
-                  <label htmlFor="remember-me" className="text-sm text-gray-700">
-                    Remember me
-                  </label>
                 </div>
               </form>
             </div>

@@ -5,8 +5,8 @@ import Footer from './Footer';
 export default function ConditionalFooter() {
   const pathname = usePathname();
   
-  // Don't show footer on dashboard routes (they have their own footer)
-  if (pathname?.startsWith('/dashboard')) {
+  // Don't show footer on dashboard or vendor routes (they have their own footer)
+  if (pathname?.startsWith('/dashboard') || pathname?.startsWith('/vendor')) {
     return null;
   }
   

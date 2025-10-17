@@ -1,11 +1,173 @@
 "use client"
-import React from 'react';
-import { Star, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Star, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const HorizonHomepage = () => {
+  const [showSlider, setShowSlider] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    {
+      title: "Horizon is a student based marketplace, created for you to",
+      description: "meet vendors and ensure you seamless purchase and satisfaction at your convenience!",
+      image: "/Frame 47.svg",
+      type: "standard"
+    },
+    {
+      title: "Buy & Sell",
+      description: "Discover amazing products and services from student vendors around your campus",
+      image: "/Frame 61.svg",
+      type: "standard"
+    },
+    {
+      title: "Join Our Community",
+      description: "Connect with thousands of students and vendors in our safe and trusted marketplace",
+      image: "/Frame 48.svg",
+      type: "standard"
+    },
+    {
+      title: "Join Our Community",
+      description: "Connect with thousands of students and vendors in our safe and trusted marketplace",
+      image: "/Frame 62.svg",
+      type: "standard"
+    },
+    {
+      title: "Join the Horizon Gang today",
+      description: "Sign up or login to access the marketplace",
+      image: "/Frame 62.svg",
+      type: "cta"
+    }
+  ];
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
+
+  if (showSlider) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center">
+        {/* Slider Modal */}
+        <div className="relative w-full max-w-4xl mx-4 bg-white rounded-xl overflow-hidden">
+          {/* Close button */}
+          <button 
+            onClick={() => setShowSlider(false)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white bg-opacity-80 hover:bg-opacity-100 transition-all z-10"
+          >
+            <X className="w-6 h-6 text-gray-800" />
+          </button>
+          
+          {/* Header - Welcome to the Horizon */}
+          <div className="w-full bg-white py-4 text-center border-b">
+            <h1 className="text-2xl font-bold text-gray-900">WELCOME TO Horizon</h1>
+          </div>
+          
+          {/* Slider Content */}
+          <div className="relative h-[450px]">
+            {/* Slide */}
+            {slides[currentSlide].type === "standard" ? (
+              <div className="h-full flex flex-col items-center justify-center p-8">
+                {/* Centered Image */}
+                <div className="flex justify-center items-center h-[300px] w-full">
+                  <img 
+                    src={slides[currentSlide].image} 
+                    alt={slides[currentSlide].title} 
+                    className="h-90 object-contain"
+                  />
+                </div>
+                
+                {/* Text Content - Hidden in this design based on the image */}
+                <div className="hidden text-center max-w-lg">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                    {slides[currentSlide].title}
+                  </h2>
+                  <p className="text-gray-600">
+                    {slides[currentSlide].description}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center p-5">
+                 {/* Logo */}
+                 
+                 {/* Content Container - Side by Side Layout */}
+                 <div className="flex flex-row w-full items-center justify-between">
+                   {/* Promotional Image - Left Side */}
+                   <div className="flex-1 flex flex-col justify-center items-center">
+                 <div className="flex mb-2">
+                   <img src="/Frame.svg" alt="Horizon Logo" className="h-7 mr-2" />
+                   <span className="text-4xl font-bold text-blue-900">Horizon</span>
+                 </div>
+                     <img 
+                       src="/Group 77.svg" 
+                       alt="Promotional Image" 
+                       className="h[190px] object-contain"
+                     />
+                   </div>
+                   
+                   {/* CTA Content - Right Side */}
+                   <div className="flex-1 flex flex-col items-center">
+                     {/* CTA Text */}
+                     <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+                       {slides[currentSlide].title}
+                     </h2>
+                     
+                     {/* CTA Buttons */}
+                     <div className="flex space-x-4">
+                       <Link 
+                         href="/signup" 
+                         className="px-8 py-3 rounded-full border-2 border-gray-300 text-gray-800 font-medium hover:bg-gray-100 transition-colors"
+                       >
+                         Signup
+                       </Link>
+                       <Link 
+                         href="/login" 
+                         className="px-8 py-3 rounded-full bg-blue-900 text-white font-medium hover:bg-blue-800 transition-colors"
+                       >
+                         Login
+                       </Link>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+            )}
+            
+            {/* Slider Controls - Left/Right buttons */}
+            <button 
+              onClick={prevSlide}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-all"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-800" />
+            </button>
+            <button 
+              onClick={nextSlide}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-all"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-800" />
+            </button>
+            
+            {/* Slide Indicators at the bottom */}
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
+              {slides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-blue-600' : 'bg-gray-300'}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Hero Section */}
       <section className="py-20 bg-gray-50 relative">
         <div className="max-w-6xl mx-auto">
@@ -184,9 +346,11 @@ const HorizonHomepage = () => {
               </p>
               <p className="text-gray-600 mb-6 sm:mb-8">Join Us, It's Free!</p>
               
-              <button className="w-45 h-17 bg-slate-800 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:bg-slate-700 transition-colors text-semibold text-lg">
-                Join Us!
-              </button>
+              <Link href="/signup" className="inline-block">
+                <button className="w-45 h-17 bg-slate-800 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:bg-slate-700 transition-colors text-semibold text-lg">
+                  Join Us!
+                </button>
+              </Link>
             </div>
             
             {/* Right Content - Vendor Image */}
@@ -198,8 +362,6 @@ const HorizonHomepage = () => {
           </div>
         </div>
       </section>
-
-  
     </div>
   );
 };

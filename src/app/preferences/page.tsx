@@ -1,8 +1,22 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function PreferencesPage() {
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
+  const [userType, setUserType] = useState<'user' | 'vendor'>('user');
+
+  // Check user type on component mount
+  useEffect(() => {
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      try {
+        const parsedUserData = JSON.parse(userData);
+        setUserType(parsedUserData.userType || 'user');
+      } catch (error) {
+        console.log('Error parsing user data, defaulting to user type');
+      }
+    }
+  }, []);
 
   const preferences = [
     'Gadgets', 'Food', 'Clothing',
@@ -20,8 +34,14 @@ export default function PreferencesPage() {
   };
 
   const handleSkip = () => {
-    // Redirect to dashboard
-    window.location.href = '/dashboard';
+    // Redirect based on user type
+    if (userType === 'vendor') {
+      // Redirect to vendor dashboard for vendors
+      window.location.href = '/dashboard/vendor';
+    } else {
+      // Redirect to regular dashboard for users
+      window.location.href = '/dashboard';
+    }
   };
 
   const handleContinue = () => {
@@ -29,7 +49,15 @@ export default function PreferencesPage() {
     console.log('Selected preferences:', selectedPreferences);
     // Here you would typically save to backend/localStorage
     localStorage.setItem('userPreferences', JSON.stringify(selectedPreferences));
-    window.location.href = '/dashboard';
+    
+    // Redirect based on user type
+    if (userType === 'vendor') {
+      // Redirect to vendor dashboard for vendors
+      window.location.href = '/dashboard/vendor';
+    } else {
+      // Redirect to regular dashboard for users
+      window.location.href = '/dashboard';
+    }
   };
 
   return (

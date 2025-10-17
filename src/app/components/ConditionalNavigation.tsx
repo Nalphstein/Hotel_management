@@ -4,7 +4,7 @@ import Navigation from './Navigation';
 
 const ConditionalNavigation = () => {
   const pathname = usePathname();
-  const isDashboard = pathname?.startsWith('/dashboard');
+  const isDashboard = pathname?.startsWith('/dashboard') || pathname?.startsWith('/vendor');
   
   if (isDashboard) {
     return null;

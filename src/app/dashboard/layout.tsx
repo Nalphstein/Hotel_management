@@ -83,6 +83,7 @@ export default function DashboardLayout({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
               </Link>
+          
               <Link 
                 href="/dashboard/help" 
                 className={`text-gray-600 hover:text-gray-900 text-sm sm:text-base ${pathname === '/dashboard/help' ? 'text-gray-900 font-medium' : ''}`}

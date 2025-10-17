@@ -28,7 +28,7 @@ export default function SearchResultsPage() {
         name: 'Slow cooked smoky Jollof Rice',
         description: 'Slow cooked smoky jollof rice with rich spices and aroma.',
         price: '₦ 5,000',
-        image: '🍛',
+        image: '/Jollof_rice.jpg',
         rating: 4.8,
         reviews: 24,
         category: 'Food'
@@ -38,7 +38,7 @@ export default function SearchResultsPage() {
         name: 'Grilled Chicken & Rice',
         description: 'Perfectly grilled chicken served with seasoned rice.',
         price: '₦ 4,500',
-        image: '🍗',
+        image: '/Rectangle_68.png', // Using an actual image from your public folder
         rating: 4.6,
         reviews: 18,
         category: 'Food'
@@ -50,7 +50,7 @@ export default function SearchResultsPage() {
         name: 'MacBook Air (15 inch, M3 chip)',
         description: 'Lightweight and powerful laptop with M3 chip.',
         price: '₦ 2,700,000',
-        image: '💻',
+        image: '/computer-2.jpg',
         rating: 4.8,
         reviews: 32,
         category: 'Gadgets'
@@ -60,7 +60,7 @@ export default function SearchResultsPage() {
         name: 'Fast Smartphone Charger',
         description: 'Universal fast charging cable compatible with all devices.',
         price: '₦ 3,500',
-        image: '🔌',
+        image: '/computer-2.jpg', // Using an actual image from your public folder
         rating: 4.5,
         reviews: 15,
         category: 'Gadgets'
@@ -72,7 +72,7 @@ export default function SearchResultsPage() {
         name: 'Room Cleaning Service',
         description: 'Professional hotel room cleaning and maintenance.',
         price: '₦ 8,000',
-        image: '🧹',
+        image: '/Image.jpg', // Using an actual image from your public folder
         rating: 4.9,
         reviews: 45,
         category: 'Services'
@@ -82,7 +82,7 @@ export default function SearchResultsPage() {
         name: 'Laundry Service',
         description: 'Same-day laundry and dry cleaning service.',
         price: '₦ 5,500',
-        image: '👔',
+        image: '/shirt.jpg', // Using an actual image from your public folder
         rating: 4.8,
         reviews: 28,
         category: 'Services'
@@ -94,7 +94,7 @@ export default function SearchResultsPage() {
         name: 'Hotel Toiletries Kit',
         description: 'Complete toiletries kit with shampoo, soap, and towels.',
         price: '₦ 2,500',
-        image: '🧴',
+        image: '/Image.jpg', // Using an actual image from your public folder
         rating: 4.4,
         reviews: 12,
         category: 'Supplies'
@@ -106,7 +106,7 @@ export default function SearchResultsPage() {
         name: 'City Tour Package',
         description: 'Guided tour of local attractions and landmarks.',
         price: '₦ 15,000',
-        image: '🏛️',
+        image: '/computer-2.jpg', // Using an actual image from your public folder
         rating: 4.6,
         reviews: 22,
         category: 'Others'
@@ -190,7 +190,15 @@ export default function SearchResultsPage() {
                   {products.map((product) => (
                     <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                       <div className="h-32 sm:h-40 md:h-48 bg-gray-100 flex items-center justify-center">
-                        <span className="text-4xl sm:text-5xl md:text-6xl">{product.image}</span>
+                        {product.image.startsWith('/') ? (
+                          <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-4xl sm:text-5xl md:text-6xl">{product.image}</span>
+                        )}
                       </div>
                       <div className="p-3 sm:p-4">
                         <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">{product.name}</h3>

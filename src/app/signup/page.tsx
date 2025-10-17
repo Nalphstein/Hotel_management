@@ -9,13 +9,15 @@ export default function SignupPage() {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    userType: 'user' // Add userType field with default value 'user'
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -42,18 +44,26 @@ export default function SignupPage() {
         username: formData.username,
         othername: formData.othername,
         email: formData.email,
-        phone: formData.phone
+        phone: formData.phone,
+        userType: formData.userType // Save user type
       }));
       
       // Simulate authentication token
       localStorage.setItem('authToken', 'new_user_token');
       
-      // Redirect to preferences page for new users
-      window.location.href = '/preferences';
+      // Redirect based on user type
+      if (formData.userType === 'vendor') {
+        // Redirect to vendor dashboard for vendors
+        window.location.href = '/vendor';
+      } else {
+        // Redirect to preferences page for regular users
+        window.location.href = '/preferences';
+      }
     } else {
       handleNext();
     }
   };
+  
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       
@@ -154,6 +164,45 @@ export default function SignupPage() {
                       <p className="mt-2 text-xs text-gray-600">
                         Other names must correspond with your bank details to process a successful withdrawal.
                       </p>
+                    </div>
+                    
+                    {/* User Type Selection - Added to Step 1 */}
+                    <div className="mt-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        I want to:
+                      </label>
+                      <div className="space-y-3">
+                        <div className="flex items-center">
+                          <input
+                            id="user-type-user"
+                            name="userType"
+                            type="radio"
+                            value="user"
+                            checked={formData.userType === 'user'}
+                            onChange={handleInputChange}
+                            className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300"
+                          />
+                          <label htmlFor="user-type-user" className="ml-3 block text-sm text-gray-700">
+                            <span className="font-medium">Buy products & services</span>
+                            <p className="text-gray-500 text-xs mt-1">Browse and purchase from vendors on the platform</p>
+                          </label>
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            id="user-type-vendor"
+                            name="userType"
+                            type="radio"
+                            value="vendor"
+                            checked={formData.userType === 'vendor'}
+                            onChange={handleInputChange}
+                            className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300"
+                          />
+                          <label htmlFor="user-type-vendor" className="ml-3 block text-sm text-gray-700">
+                            <span className="font-medium">Sell products & services</span>
+                            <p className="text-gray-500 text-xs mt-1">Create a vendor account to sell on the platform</p>
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}
