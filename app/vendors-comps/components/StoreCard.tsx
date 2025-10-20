@@ -20,14 +20,14 @@ const StoreCard = ({
       <div className="p-6">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className={`font-medium ${title === 'Offline Store' ? 'text-white/80' : 'text-gray-500'} text-sm`}>
+            <h3 className={`font-medium ${title === 'Offline Store' ? 'text-white/80' : 'text-gray-800'} text-lg`}>
               {title}
             </h3>
-            <p className={`text-xs ${title === 'Offline Store' ? 'text-white/70' : 'text-gray-400'}`}>
+            <p className={`text-xs ${title === 'Offline Store' ? 'text-white/70' : 'text-gray-800'}`}>
               {subtitle}
             </p>
           </div>
-          <button className={`${title === 'Offline Store' ? 'text-white/70' : 'text-gray-400'}`}>
+          <button className={`${title === 'offline Store' ? 'text-white/70' : 'text-gray-800'}`}>
             <MoreVerticalIcon size={16} />
           </button>
         </div>
@@ -38,7 +38,7 @@ const StoreCard = ({
               {trend === 'up' ? <TrendingUpIcon size={14} /> : <TrendingDownIcon size={14} />}
               <span className="ml-1 text-xs font-medium">{percentage}%</span>
             </div>
-            <span className={`ml-2 text-xs ${title === 'Offline Store' ? 'text-white/70' : 'text-gray-400'}`}>
+            <span className={`ml-2 text-xs ${title === 'Offline Store' ? 'text-white/70' : 'text-gray-800'}`}>
               {type}
             </span>
           </div>
