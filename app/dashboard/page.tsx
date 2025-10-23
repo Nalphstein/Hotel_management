@@ -15,8 +15,8 @@ type Product = {
   description: string;
   price: number;
   image: string;
-  rating: number;
-  reviews: number;
+  rating?: number; // Marked as optional to handle data that might be missing the field
+  reviews?: number; // Marked as optional
   slug: string;
   isFeatured?: boolean;
 };
@@ -47,30 +47,43 @@ export default function DashboardPage() {
 
   const categories = ['Food', 'Gadgets', 'Services', 'Supplies', 'Others'];
 
+  // --- Effect to fetch initial page data (user name AND featured product) ---
   useEffect(() => {
     if (user) {
       const fetchInitialData = async () => {
         setIsLoading(true);
         try {
+          // Define references for both queries
           const userDocRef = doc(db, 'users', user.uid);
           const productsRef = collection(db, 'products');
+
+          // The query to automatically find the product with the highest 'rating'.
           const featuredQuery = query(productsRef, orderBy("rating", "desc"), limit(1));
           
+          // Use Promise.all to run both fetches concurrently for better performance
           const [userDocSnap, featuredSnapshot] = await Promise.all([
             getDoc(userDocRef),
             getDocs(featuredQuery)
           ]);
 
+          // Process the user's name
           if (userDocSnap.exists()) {
             setUserName(userDocSnap.data().username || 'User');
           }
 
+          // Process the featured product result
           if (!featuredSnapshot.empty) {
             const doc = featuredSnapshot.docs[0];
-            setFeaturedProduct({ id: doc.id, ...doc.data() } as Product);
+            // Safeguard: only set the featured product if it has a slug
+            if (doc.data().slug) {
+              setFeaturedProduct({ id: doc.id, ...doc.data() } as Product);
+            }
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Error fetching initial dashboard data:", err);
+          // Pro-Tip: Check the console for an error message asking to create an index!
+          // This query (`orderBy('rating')`) requires a single-field index on the 'rating' field.
+          // Firestore usually prompts you to create this automatically.
           setError('Failed to load essential dashboard data.');
         } finally {
           setIsLoading(false);
@@ -80,6 +93,7 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  // Effect to fetch products whenever the active category changes
   useEffect(() => {
     const fetchProducts = async () => {
       setIsProductsLoading(true);
@@ -88,10 +102,14 @@ export default function DashboardPage() {
         const productsCollection = collection(db, 'products');
         const q = query(productsCollection, where("category", "==", activeCategory));
         const querySnapshot = await getDocs(q);
-        const fetchedProducts = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Product[];
+        
+        const fetchedProducts = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(p => p.slug) as Product[]; // Safeguard against missing slugs
+        
         setProducts(fetchedProducts);
       } catch (err) {
         console.error("Error fetching products:", err);
@@ -120,8 +138,7 @@ export default function DashboardPage() {
             <h1 className="text-xl sm:text-2xl font-normal text-gray-700">Hello {userName},</h1>
           </div>
 
-          {/* --- CORRECTED DYNAMIC "Highlight of the week" Section --- */}
-          {/* This section will now only render if a featuredProduct was actually found. */}
+          {/* Dynamic "Highlight of the week" Section */}
           {featuredProduct && (
             <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -186,8 +203,8 @@ export default function DashboardPage() {
                     <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
                     <div className="flex items-center mb-3">
-                      <StarRating rating={product.rating} />
-                      <span className="ml-2 text-sm text-gray-500">({product.reviews} reviews)</span>
+                      <StarRating rating={product.rating || 0} />
+                      <span className="ml-2 text-sm text-gray-500">({product.reviews || 0} reviews)</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-gray-900">{formatPrice(product.price)}</span>

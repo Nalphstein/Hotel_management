@@ -4,6 +4,7 @@ import "./globals.css";
 import ConditionalNavigation from "./components/ConditionalNavigation";
 import ConditionalFooter from "./components/ConditionalFooter";
 import { AuthProvider } from "../context/AuthContext";
+import { CheckoutProvider } from '../context/CheckoutContext';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Horizon Hotel Management System",
-  description: "Professional hotel management system for modern hospitality",
+  title: "Horizon",
+  description: "",
 };
 
 export default function RootLayout({
@@ -31,9 +32,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
       <AuthProvider>
+      <CheckoutProvider>
         <ConditionalNavigation />
         <main>{children}</main>
         <ConditionalFooter />
+      </CheckoutProvider>
         </AuthProvider>
       </body>
     </html>

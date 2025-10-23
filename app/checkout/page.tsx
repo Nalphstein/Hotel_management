@@ -1,0 +1,140 @@
+'use client';
+import { useCheckout } from '../../context/CheckoutContext';
+import { useAuth } from '../../context/AuthContext';
+import ProtectedRoute from '../components/ProtectedRoute';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+// --- Import the Paystack clone modal component ---
+import PaystackCloneModal from '../components/PaystackCloneModal';
+
+// This is a mock function to simulate creating an order record in Firestore.
+// In a real application, this would be a call to a secure Firebase Cloud Function.
+async function createOrderInFirestore(user: any, item: any): Promise<string> {
+    console.log("Simulating order creation for user:", user.uid, "with item:", item);
+    // This function would normally:
+    // 1. Call a Cloud Function with the item details (price, productId, vendorId, etc.).
+    // 2. The Cloud Function would create a new document in the top-level `/orders` collection.
+    // 3. The new document's ID would be returned to the client.
+    
+    // For this simulation, we'll just return a generated ID.
+    return `ORD-${Date.now()}`; 
+}
+
+export default function CheckoutPage() {
+  const { item } = useCheckout(); // Get the item to be purchased from our global context
+  const { user } = useAuth();     // Get the current logged-in user
+  const router = useRouter();
+
+  // --- State Management for the checkout flow ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false); // For the "Finalizing" state after payment
+
+  // Effect to redirect the user if they land on this page without an item in the context
+  useEffect(() => {
+    // We add a small delay to ensure the context has had a chance to load,
+    // preventing a premature redirect on a slow connection.
+    const timer = setTimeout(() => {
+        if (!item) {
+            router.replace('/dashboard');
+        }
+    }, 500);
+    return () => clearTimeout(timer); // Cleanup the timer
+  }, [item, router]);
+
+  // This function is the callback that gets triggered when the Paystack modal reports a successful "payment"
+  const handleSuccessfulPayment = async () => {
+    if (!user || !item) return;
+
+    // First, close the payment modal
+    setIsModalOpen(false);
+    
+    // Now, show a loading state on the main page while we "create the order"
+    setIsCreatingOrder(true);
+    
+    try {
+      // Call our mock function to simulate saving the order to Firestore
+      const orderId = await createOrderInFirestore(user, item);
+      
+      // On success, redirect the user to the success page, passing the new order ID in the URL
+      router.push(`/order-success/${orderId}`);
+    } catch (error) {
+      console.error("Order creation failed after payment simulation:", error);
+      alert("There was an error creating your order record. Please try again.");
+      setIsCreatingOrder(false); // Reset loading state on error
+    }
+  };
+
+  // Render a loading state while context is loading or if there's no item
+  if (!item || !user) {
+    return (
+        <ProtectedRoute>
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            </div>
+        </ProtectedRoute>
+    );
+  }
+
+  // Helper to format currency
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(price);
+  };
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 py-12 px-4">
+        <div className="max-w-3xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-800">Checkout</h1>
+          
+          {/* Order Summary Section */}
+          <div className="border-b pb-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-700">Order Summary</h2>
+            <div className="flex items-center space-x-4">
+              <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0"/>
+              <div className="flex-grow">
+                <p className="font-semibold text-gray-800">{item.name}</p>
+                {/* Display selected options, if any */}
+                {Object.entries(item.selectedOptions).map(([key, value]) => (
+                    <p key={key} className="text-sm text-gray-500 capitalize">{key}: {String(value)}</p>
+                ))}
+              </div>
+              <p className="font-bold text-lg text-gray-800">{formatPrice(item.price)}</p>
+            </div>
+          </div>
+
+          {/* Payment Section */}
+          <div>
+             <h2 className="text-xl font-semibold mb-4 text-gray-700">Payment Details</h2>
+             <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
+                <p className="text-gray-600 text-center">You will be prompted to enter your card details in the next step.</p>
+             </div>
+          </div>
+          
+          <div className="mt-8">
+            {/* This button's only job is to open the payment modal */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              disabled={isCreatingOrder}
+              className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold text-lg hover:bg-gray-700 disabled:bg-gray-400 transition-colors"
+            >
+              {isCreatingOrder ? 'Finalizing Order...' : `Pay ${formatPrice(item.price)}`}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* The Paystack Clone Modal */}
+      {/* It is rendered here but remains hidden until `isModalOpen` is true. */}
+      {/* We pass it all the necessary data and callback functions it needs to operate. */}
+      <PaystackCloneModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleSuccessfulPayment}
+        email={user.email || 'customer@example.com'}
+        amount={item.price}
+        currency="NGN"
+      />
+    </ProtectedRoute>
+  );
+}

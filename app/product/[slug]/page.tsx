@@ -3,12 +3,14 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
-// --- Imports for Firebase and Authentication ---
-import ProtectedRoute from '../../../components/ProtectedRoute'; // Component to protect the route
-import { db } from '../../../../lib/firebase/config';      // Firebase configuration
-import { collection, query, where, getDocs, limit } from 'firebase/firestore'; // Firestore functions
+// --- Imports for Firebase, Authentication, and Checkout ---
+import ProtectedRoute from '../../components/ProtectedRoute'; 
+import { useCheckout } from '../../../context/CheckoutContext'; // Hook to initiate the checkout flow
+import { db } from '../../../lib/firebase/config';      
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 // --- Type Definitions for Data Integrity ---
+// This ensures our code is type-safe and matches our Firestore data model.
 interface ProductOption {
   id: string;
   label: string;
@@ -20,11 +22,12 @@ interface Product {
   slug: string; // The URL-friendly identifier
   name: string;
   description: string;
-  basePrice: number; // Stored as a number for calculations
+  price: number; // Stored as a number for calculations
   image: string;
-  category: 'Food' | 'Gadgets' | 'Services' | 'Supplies' | 'Others';
-  rating: number;
-  features: string[];
+  category: string;
+  rating?: number;
+  reviews?: number;
+  features?: string[]; // Marked as optional for data safety
   options?: {
     [key: string]: ProductOption[]; // Allows for various option types (colors, sizes, etc.)
   };
@@ -34,21 +37,22 @@ export default function ProductDetailPage() {
   const params = useParams();
   const productSlug = params?.slug as string;
   
+  const { initiateCheckout } = useCheckout(); // Get the function to start the checkout process
+
   // --- State Management ---
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Data Fetching Effect ---
-  // Fetches the specific product from Firestore when the component mounts or the slug changes
+  // Fetches the specific product from Firestore based on the 'slug' from the URL
   useEffect(() => {
-    if (!productSlug) return; // Don't run if the slug isn't available yet
+    if (!productSlug) return;
 
     const fetchProduct = async () => {
       setIsLoading(true);
       try {
         const productsRef = collection(db, 'products');
-        // Create a query to find the single product document where the 'slug' field matches the URL
         const q = query(productsRef, where("slug", "==", productSlug), limit(1));
         const querySnapshot = await getDocs(q);
 
@@ -57,7 +61,7 @@ export default function ProductDetailPage() {
           const productData = { id: doc.id, ...doc.data() } as Product;
           setProduct(productData);
           
-          // Automatically select the first option for each category by default
+          // Initialize default option selections for the product
           const initialOptions: Record<string, string> = {};
           if (productData.options) {
             Object.entries(productData.options).forEach(([optionType, options]) => {
@@ -68,7 +72,7 @@ export default function ProductDetailPage() {
           }
           setSelectedOptions(initialOptions);
         } else {
-          setProduct(null); // Set to null if no product is found
+          setProduct(null); // Set to null if no product is found with that slug
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -79,20 +83,20 @@ export default function ProductDetailPage() {
     };
 
     fetchProduct();
-  }, [productSlug]); // Dependency array ensures this runs again if the slug changes
+  }, [productSlug]);
 
   // --- Helper Functions ---
 
-  // Calculates the final price based on the base price and selected options
+  // Calculates the final price based on the base price and any selected options
   const calculatePrice = (): number => {
     if (!product) return 0;
-    if (!product.options) return product.basePrice;
+    // Use `price` for consistency
+    if (!product.options) return product.price;
     
-    let totalPrice = product.basePrice;
+    let totalPrice = product.price;
     
     Object.entries(selectedOptions).forEach(([optionType, selectedId]) => {
-      const optionGroupKey = optionType as keyof typeof product.options;
-      const optionGroup = product.options?.[optionGroupKey];
+      const optionGroup = product.options?.[optionType as keyof typeof product.options];
       if (optionGroup) {
         const selectedOption = optionGroup.find(opt => opt.id === selectedId);
         if (selectedOption) {
@@ -113,14 +117,59 @@ export default function ProductDetailPage() {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(price);
   };
-  
+
   const optionLabels: Record<string, string> = {
     colors: 'Colour', memory: 'Memory', storage: 'Storage', sizes: 'Size',
     serviceTypes: 'Service Type', materials: 'Material', durations: 'Duration'
   };
 
-  // --- Conditional Rendering ---
+  // --- "Buy Now" Handler ---
+  const handleBuyNow = () => {
+    if (!product) return;
+
+    // Assemble the item details for the checkout context
+    const checkoutItem = {
+      productId: product.id,
+      name: product.name,
+      image: product.image,
+      price: calculatePrice(), // Use the final calculated price
+      quantity: 1,
+      selectedOptions: selectedOptions,
+    };
+
+    // Trigger the global checkout process
+    initiateCheckout(checkoutItem);
+  };
   
+  // Renders a block of selectable product options
+  const renderOptionSection = (optionType: string, options: ProductOption[], label: string) => {
+    return (
+      <div key={optionType}>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2 sm:mb-3">{label}</h3>
+        <div className="flex flex-wrap gap-3">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => handleOptionChange(optionType, option.id)}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border transition-colors text-sm sm:text-base ${
+                selectedOptions[optionType] === option.id
+                  ? 'border-orange-500 bg-orange-50 text-orange-700'
+                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+              }`}
+            >
+              {option.label}
+              {option.priceModifier > 0 && (
+                <span className="ml-1 text-xs sm:text-sm text-gray-500">(+{formatPrice(option.priceModifier)})</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // --- Conditional Rendering for Loading and Not Found States ---
+
   if (isLoading) {
     return (
       <ProtectedRoute>
@@ -146,7 +195,7 @@ export default function ProductDetailPage() {
       </ProtectedRoute>
     );
   }
-
+  
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
@@ -178,39 +227,24 @@ export default function ProductDetailPage() {
               {/* Dynamic Options Rendering */}
               {product.options && (
                 <div className="space-y-6">
-                  {Object.entries(product.options).map(([optionType, options]) => (
-                    <div key={optionType}>
-                      <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2 sm:mb-3">{optionLabels[optionType] || optionType}</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {options.map((option) => (
-                          <button
-                            key={option.id}
-                            onClick={() => handleOptionChange(optionType, option.id)}
-                            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border transition-colors text-sm sm:text-base ${
-                              selectedOptions[optionType] === option.id
-                                ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                            }`}
-                          >
-                            {option.label}
-                            {option.priceModifier > 0 && (
-                              <span className="ml-1 text-xs sm:text-sm text-gray-500">(+{formatPrice(option.priceModifier)})</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                  {Object.entries(product.options).map(([optionType, options]) => 
+                    options && options.length > 0 ? 
+                      renderOptionSection(optionType, options, optionLabels[optionType] || optionType) 
+                      : null
+                  )}
                 </div>
               )}
 
-              {/* Price and Add to Cart/Buy Button */}
+              {/* Price and Buy Button */}
               <div className="border-t pt-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {formatPrice(calculatePrice())}
                   </div>
-                  <button className="bg-gray-800 text-white px-6 py-2 sm:px-8 sm:py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm sm:text-base">
+                  <button
+                    onClick={handleBuyNow} // This button now starts the checkout process
+                    className="bg-gray-800 text-white px-6 py-2 sm:px-8 sm:py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm sm:text-base"
+                  >
                     Buy now
                   </button>
                 </div>
@@ -220,18 +254,19 @@ export default function ProductDetailPage() {
               <div>
                 <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3">Key Features</h3>
                 <ul className="space-y-1.5 sm:space-y-2">
-                  {product.features.map((feature, index) => (
+                  {product.features?.map((feature, index) => (
                     <li key={index} className="flex items-start">
                       <span className="text-green-500 mr-2 text-sm mt-1">•</span>
                       <span className="text-gray-600 text-sm sm:text-base">{feature}</span>
                     </li>
                   ))}
+                  {(!product.features || product.features.length === 0) && (
+                      <li className="text-sm text-gray-500">No key features listed.</li>
+                  )}
                 </ul>
               </div>
             </div>
           </div>
-          
-          {/* "You might also like" section can be made dynamic later */}
         </div>
       </div>
     </ProtectedRoute>

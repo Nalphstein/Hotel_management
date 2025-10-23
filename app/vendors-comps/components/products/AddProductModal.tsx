@@ -6,54 +6,72 @@ import { XIcon, ImageIcon } from 'lucide-react';
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (productData: any) => Promise<void>; // The parent's function to save to Firestore
+  onAdd: (productData: any) => Promise<void>;
   categories: string[];
 }
 
+// --- 1. A HELPER FUNCTION TO CREATE A URL-FRIENDLY SLUG ---
+const slugify = (text: string): string => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+    .replace(/^-+/, '')             // Trim - from start of text
+    .replace(/-+$/, '');            // Trim - from end of text
+};
+
 const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAdd, categories }) => {
-  // --- State Management ---
-  
-  // A helper function to define the initial state, making it easy to reset the form.
   const getInitialState = () => ({
     name: '',
     category: categories[0] || '',
     price: '',
     stock: '',
-    image: '', // The image is just a string for the URL.
+    image: '',
   });
 
   const [formData, setFormData] = useState(getInitialState());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form when the modal is opened
   useEffect(() => {
     if (isOpen) {
       setFormData(getInitialState());
     }
-  }, [isOpen]);
+  }, [isOpen, categories]);
 
   const isService = () => {
     return ['Laundry', 'Home Services', 'Food Delivery'].includes(formData.category);
   };
 
-  // --- Handlers ---
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      // Ensure price and stock are stored as numbers for Firestore
       [name]: (name === 'price' || name === 'stock') ? (value === '' ? '' : Number(value)) : value,
     });
   };
 
+  // --- 2. UPDATED SUBMIT HANDLER ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Pass the collected form data up to the parent component's onAdd function.
-      // The parent is responsible for adding the vendorId and saving to Firestore.
-      await onAdd(formData);
+      // Create the slug from the product name before submitting
+      const slug = slugify(formData.name);
+
+      // Create a complete product object, including the new slug and default values
+      const completeProductData = {
+        ...formData,
+        slug: slug,
+        rating: 0,  // Add a default rating
+        reviews: 0, // Add a default review count
+      };
+
+      // Pass the complete data object to the parent's onAdd function
+      await onAdd(completeProductData);
+      
       onClose(); // Close the modal on successful submission
     } catch (error) {
       console.error("Failed to add product:", error);
@@ -98,7 +116,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Price
+                Price ($)
               </label>
               <input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800" min="0" step="0.01" required />
             </div>
