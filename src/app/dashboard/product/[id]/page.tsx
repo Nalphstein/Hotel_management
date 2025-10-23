@@ -183,6 +183,32 @@ export default function ProductDetailPage() {
         ]
       }
     },
+    'web-development': {
+      id: 'web-development',
+      name: 'Web Development Service',
+      description: 'Professional web development service for your business with responsive design and modern features.',
+      basePrice: 50000,
+      image: '/api/placeholder/300/300',
+      category: 'Services',
+      rating: 4.7,
+      features: [
+        'Responsive Design',
+        'SEO Optimization',
+        'Custom Features'
+      ],
+      options: {
+        serviceTypes: [
+          { id: 'basic', label: 'Basic Website', value: 'Basic', priceModifier: 0 },
+          { id: 'ecommerce', label: 'E-commerce Website', value: 'E-commerce', priceModifier: 100000 },
+          { id: 'custom', label: 'Custom Web Application', value: 'Custom', priceModifier: 200000 }
+        ],
+        durations: [
+          { id: 'standard', label: 'Standard (2 weeks)', value: 'Standard', priceModifier: 0 },
+          { id: 'express', label: 'Express (1 week)', value: 'Express', priceModifier: 30000 },
+          { id: 'priority', label: 'Priority (3 days)', value: 'Priority', priceModifier: 50000 }
+        ]
+      }
+    },
     
     // SUPPLIES PRODUCTS - Material and quantity-based pricing
     'toiletries-kit': {
@@ -203,6 +229,27 @@ export default function ProductDetailPage() {
           { id: 'standard', label: 'Standard', value: 'Standard', priceModifier: 0 },
           { id: 'premium', label: 'Premium', value: 'Premium', priceModifier: 1000 },
           { id: 'luxury', label: 'Luxury', value: 'Luxury', priceModifier: 2000 }
+        ]
+      }
+    },
+    'notebook-set': {
+      id: 'notebook-set',
+      name: 'Premium Notebook Set',
+      description: 'High-quality notebooks for students and professionals with acid-free paper and durable covers.',
+      basePrice: 3500,
+      image: '/api/placeholder/300/300',
+      category: 'Supplies',
+      rating: 4.3,
+      features: [
+        'Acid-free paper',
+        'Hardcover',
+        'Pack of 3'
+      ],
+      options: {
+        materials: [
+          { id: 'recycled', label: 'Recycled Paper', value: 'Recycled', priceModifier: 0 },
+          { id: 'premium', label: 'Premium Paper', value: 'Premium', priceModifier: 1000 },
+          { id: 'leather', label: 'Leather Cover', value: 'Leather', priceModifier: 2500 }
         ]
       }
     },
@@ -239,12 +286,25 @@ export default function ProductDetailPage() {
     const foundProduct = productDatabase[productId];
     if (foundProduct) {
       setProduct(foundProduct);
+      
+      // Try to load saved options from localStorage
+      let savedOptions: Record<string, string> = {};
+      try {
+        const savedOptionsString = localStorage.getItem(`product_${productId}_options`);
+        if (savedOptionsString) {
+          savedOptions = JSON.parse(savedOptionsString);
+        }
+      } catch (error) {
+        console.error('Error loading saved options:', error);
+      }
+      
       // Initialize default selections for all option types
       const initialOptions: Record<string, string> = {};
       if (foundProduct.options) {
         Object.entries(foundProduct.options).forEach(([optionType, options]) => {
           if (options && options.length > 0) {
-            initialOptions[optionType] = options[0].id;
+            // Use saved option if available, otherwise use first option
+            initialOptions[optionType] = savedOptions[optionType] || options[0].id;
           }
         });
       }
@@ -271,12 +331,39 @@ export default function ProductDetailPage() {
     return totalPrice;
   };
 
+  // Generate checkout URL with product details
+  const generateCheckoutUrl = () => {
+    if (!product) return '/dashboard/checkout/delivery';
+    
+    // Start with base URL and product ID
+    let url = `/dashboard/checkout/delivery?productId=${product.id}`;
+    
+    // Add all selected options to URL parameters
+    Object.entries(selectedOptions).forEach(([key, value]) => {
+      url += `&${key}=${value}`;
+    });
+    
+    return url;
+  };
+
   // Dynamic option selection handler
   const handleOptionChange = (optionType: string, optionId: string) => {
+    // Update selected options and store in state
     setSelectedOptions(prev => ({
       ...prev,
       [optionType]: optionId
     }));
+    
+    // Also store in localStorage for persistence between pages
+    try {
+      const updatedOptions = {
+        ...selectedOptions,
+        [optionType]: optionId
+      };
+      localStorage.setItem(`product_${productId}_options`, JSON.stringify(updatedOptions));
+    } catch (error) {
+      console.error('Error saving options to localStorage:', error);
+    }
   };
 
   // Render option section based on option type
@@ -383,9 +470,12 @@ export default function ProductDetailPage() {
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                   ₦ {calculatePrice().toLocaleString()}
                 </div>
-                <button className="bg-blue-600 text-white px-6 py-2 sm:px-8 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base">
-                  Buy now
-                </button>
+                {/* Generate URL with product details */}
+                <Link href={generateCheckoutUrl()}>
+                  <button className="bg-blue-600 text-white px-6 py-2 sm:px-8 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base">
+                    Buy now
+                  </button>
+                </Link>
               </div>
             </div>
 
