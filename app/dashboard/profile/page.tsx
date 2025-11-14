@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Link from 'next/link';
 import { CheckCircleIcon, ClockIcon, TruckIcon, XCircleIcon } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
+import { db } from '../../../lib/firebase/config';
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
 interface Order {
   id: string;
@@ -14,48 +17,23 @@ interface Order {
   quantity: number;
   vendorName: string;
   status: string;
-  createdAt: Date;
+  createdAt: any; // Firestore timestamp
 }
 
-// Mock order data
-const mockOrders: Order[] = [
-  {
-    id: 'mock-order-1',
-    orderId: 'ORD-123456789',
-    productName: 'Wireless Bluetooth Headphones',
-    productImage: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop',
-    price: 8999,
-    quantity: 1,
-    vendorName: 'Tech Gadgets Store',
-    status: 'shipped',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
-  },
-  {
-    id: 'mock-order-2',
-    orderId: 'ORD-987654321',
-    productName: 'Smart Fitness Watch',
-    productImage: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop',
-    price: 12999,
-    quantity: 1,
-    vendorName: 'Fitness World',
-    status: 'processing',
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) // 1 day ago
-  },
-  {
-    id: 'mock-order-3',
-    orderId: 'ORD-456789123',
-    productName: 'Premium Coffee Maker',
-    productImage: 'https://images.unsplash.com/photo-1575324681808-6806f7d1b0a3?w=200&h=200&fit=crop',
-    price: 24999,
-    quantity: 1,
-    vendorName: 'Kitchen Essentials',
-    status: 'delivered',
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
-  }
-];
+interface UserProfile {
+  username: string;
+  othername: string;
+  email: string;
+  phone?: string;
+  createdAt: any;
+}
 
 export default function ProfilePage() {
-  const [orders] = useState<Order[]>(mockOrders);
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // Helper to format currency
   const formatPrice = (price: number) => {
@@ -63,7 +41,10 @@ export default function ProfilePage() {
   };
 
   // Helper to format date
-  const formatDate = (date: Date) => {
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    // Handle both Firestore Timestamp and Date objects
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString();
   };
 
@@ -103,6 +84,141 @@ export default function ProfilePage() {
     }
   };
 
+  // Fetch user profile data
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUserProfile = async () => {
+      setProfileLoading(true);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUserProfile({
+            username: userData.username || '',
+            othername: userData.othername || '',
+            email: userData.email || user.email || '',
+            phone: userData.phone || '',
+            createdAt: userData.createdAt || user.metadata?.creationTime
+          });
+        } else {
+          // Fallback to auth data if no user document exists
+          setUserProfile({
+            username: '',
+            othername: '',
+            email: user.email || '',
+            phone: '',
+            createdAt: user.metadata?.creationTime
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Fallback to auth data on error
+        setUserProfile({
+          username: '',
+          othername: '',
+          email: user.email || '',
+          phone: '',
+          createdAt: user.metadata?.creationTime
+        });
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  // Fetch user orders
+  useEffect(() => {
+    if (!user) return;
+
+    setLoading(true);
+    
+    // Try to fetch orders from localStorage
+    try {
+      const storedOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+      // Filter orders for current user
+      const userOrders = storedOrders.filter((order: any) => order.userId === user.uid);
+      
+      // Convert stored orders to the expected format
+      const formattedOrders = userOrders.map((order: any) => ({
+        id: order.orderId,
+        orderId: order.orderId,
+        productName: order.productName,
+        productImage: order.productImage,
+        price: order.price,
+        quantity: order.quantity,
+        vendorName: order.vendorName || 'Vendor',
+        status: order.status || 'pending',
+        createdAt: order.createdAt
+      }));
+      
+      setOrders(formattedOrders);
+      setLoading(false);
+      return;
+    } catch (storageError) {
+      console.warn("Could not read orders from localStorage:", storageError);
+    }
+    
+    // Fallback to Firestore if localStorage fails
+    const ordersRef = collection(db, 'orders');
+    const q = query(
+      ordersRef, 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+    
+    // Set up real-time listener for orders
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedOrders = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          orderId: data.orderId,
+          productName: data.productName,
+          productImage: data.productImage,
+          price: data.price,
+          quantity: data.quantity,
+          vendorName: data.vendorName || 'Vendor',
+          status: data.status || 'pending',
+          createdAt: data.createdAt
+        } as Order;
+      });
+      
+      setOrders(fetchedOrders);
+      setLoading(false);
+    }, (error) => {
+      console.warn('Could not fetch orders from Firestore (permissions error). This is expected in development.', error);
+      setLoading(false);
+    });
+
+    // Clean up the listener when component unmounts
+    return () => unsubscribe();
+  }, [user]);
+
+  if (!user) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  // Get full name for display
+  const getFullDisplayName = () => {
+    if (profileLoading) return 'Loading...';
+    
+    if (userProfile) {
+      const fullName = `${userProfile.othername} ${userProfile.username}`.trim();
+      return fullName || user.displayName || 'User';
+    }
+    
+    return user.displayName || 'User';
+  };
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 py-8">
@@ -120,15 +236,21 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-500">Name</p>
-                    <p className="font-medium">John Doe</p>
+                    <p className="font-medium">{getFullDisplayName()}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium">john.doe@example.com</p>
+                    <p className="font-medium">{userProfile?.email || user.email}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Member Since</p>
-                    <p className="font-medium">January 15, 2023</p>
+                    <p className="font-medium">
+                      {userProfile?.createdAt 
+                        ? formatDate(userProfile.createdAt)
+                        : user.metadata?.creationTime 
+                          ? new Date(user.metadata.creationTime).toLocaleDateString() 
+                          : 'Unknown Date'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -142,7 +264,12 @@ export default function ProfilePage() {
                   <p className="text-gray-600">Track your recent orders</p>
                 </div>
                 
-                {orders.length === 0 ? (
+                {loading ? (
+                  <div className="p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                    <p className="mt-2 text-gray-500">Loading your orders...</p>
+                  </div>
+                ) : orders.length === 0 ? (
                   <div className="p-8 text-center">
                     <p className="text-gray-500">You haven't placed any orders yet.</p>
                     <Link href="/dashboard">
@@ -178,7 +305,7 @@ export default function ProfilePage() {
                               </span>
                             </div>
                             
-                            <Link href={`/order-tracking/mock/${order.orderId}`}>
+                            <Link href={`/order-tracking/${order.orderId}`}>
                               <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                 Track Order
                               </span>

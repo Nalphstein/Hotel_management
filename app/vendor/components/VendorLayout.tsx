@@ -13,6 +13,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
   const pathname = usePathname();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [vendorInitials, setVendorInitials] = useState('JD'); // Default to 'JD' if no name is found
+  const [vendorProfileImage, setVendorProfileImage] = useState<string | null>(null); // For profile image
   
   // Extract the vendor section from the pathname
   const isActive = (path: string) => {
@@ -22,7 +23,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
     return pathname?.startsWith(path);
   };
 
-  // Get vendor initials from user data stored in localStorage
+  // Get vendor initials and profile image from user data stored in localStorage
   useEffect(() => {
     const userData = localStorage.getItem('userData');
     if (userData) {
@@ -32,10 +33,30 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
         // Get first two letters of the full name
         const initials = fullName.substring(0, 2).toUpperCase();
         setVendorInitials(initials);
+        
+        // Set profile image if it exists in user data
+        if (parsedData.profileImage) {
+          setVendorProfileImage(parsedData.profileImage);
+        }
       } catch (error) {
         console.error('Error parsing user data:', error);
       }
     }
+  }, []);
+
+  // Listen for profile image updates
+  useEffect(() => {
+    const handleProfileImageUpdate = (event: CustomEvent) => {
+      setVendorProfileImage(event.detail.profileImage);
+    };
+
+    // Add event listener for profile image updates
+    window.addEventListener('profileImageUpdated', handleProfileImageUpdate as EventListener);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('profileImageUpdated', handleProfileImageUpdate as EventListener);
+    };
   }, []);
 
   return (
@@ -103,7 +124,15 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                   className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-medium"
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                 >
-                  {vendorInitials}
+                  {vendorProfileImage ? (
+                    <img 
+                      src={vendorProfileImage} 
+                      alt="Profile" 
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    vendorInitials
+                  )}
                 </button>
                 {showProfileMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">

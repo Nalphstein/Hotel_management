@@ -7,7 +7,7 @@ import Link from 'next/link';
 import ProtectedRoute from '../../components/ProtectedRoute'; 
 import { useCheckout } from '../../../context/CheckoutContext'; // Hook to initiate the checkout flow
 import { db } from '../../../lib/firebase/config';      
-import { collection, query, where, getDocs, limit, doc, getDoc, DocumentData } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
 
 // --- Type Definitions for Data Integrity ---
 // This ensures our code is type-safe and matches our Firestore data model.
@@ -32,11 +32,14 @@ interface Product {
     [key: string]: ProductOption[]; // Allows for various option types (colors, sizes, etc.)
   };
   vendorId?: string; // Add vendorId to product type
+  vendorName?: string; // Add vendorName to product type
 }
 
 // Define the structure of vendor data
 interface VendorData {
-  username: string;
+  username?: string;
+  othername?: string;
+  displayName?: string;
   // Add other vendor fields as needed
 }
 
@@ -51,6 +54,8 @@ export default function ProductDetailPage() {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [vendorName, setVendorName] = useState<string>(''); // Store vendor name
+  const [vendorProducts, setVendorProducts] = useState<Product[]>([]); // Store other products from the same vendor
+  const [vendorProductsLoading, setVendorProductsLoading] = useState(true);
 
   // --- Data Fetching Effect ---
   // Fetches the specific product from Firestore based on the 'slug' from the URL
@@ -66,24 +71,35 @@ export default function ProductDetailPage() {
 
         if (!querySnapshot.empty) {
           const productDoc = querySnapshot.docs[0];
-          const productData = { id: productDoc.id, ...productDoc.data() } as Product;
+          // Cast the Firestore data to Product interface
+          const productData = { 
+            id: productDoc.id, 
+            ...productDoc.data() 
+          } as Product;
           setProduct(productData);
           
           // Use stored vendor name if available, otherwise fetch it
           if (productData.vendorId) {
+            // First check if vendorName is embedded in the product document
             if (productData.vendorName) {
               setVendorName(productData.vendorName);
             } else {
+              // If not embedded, fetch from Firestore
               try {
                 const vendorDoc = await getDoc(doc(db, 'users', productData.vendorId));
                 if (vendorDoc.exists()) {
-                  const vendorData = vendorDoc.data() as VendorData;
-                  setVendorName(vendorData.username || 'Unknown Vendor');
+                  const vendorData = vendorDoc.data();
+                  // Based on the signup page, we have username (surname) and othername (other names)
+                  const vendorName = vendorData.username || vendorData.othername || vendorData.displayName || 'Unknown Vendor';
+                  setVendorName(vendorName);
                 }
               } catch (error) {
                 console.error("Error fetching vendor name:", error);
               }
             }
+            
+            // Fetch other products from the same vendor
+            fetchVendorProducts(productData.vendorId);
           }
           
           // Initialize default option selections for the product
@@ -109,6 +125,31 @@ export default function ProductDetailPage() {
 
     fetchProduct();
   }, [productSlug]);
+  
+  // Fetch other products from the same vendor
+  const fetchVendorProducts = async (vendorId: string) => {
+    setVendorProductsLoading(true);
+    try {
+      const productsRef = collection(db, 'products');
+      const q = query(
+        productsRef, 
+        where("vendorId", "==", vendorId),
+        limit(10) // Limit to 10 products to avoid performance issues
+      );
+      const querySnapshot = await getDocs(q);
+      
+      // Map the documents and filter out the current product
+      const vendorProductsData = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Product))
+        .filter(product => product.slug !== productSlug); // Exclude current product
+      
+      setVendorProducts(vendorProductsData);
+    } catch (error) {
+      console.error("Error fetching vendor products:", error);
+    } finally {
+      setVendorProductsLoading(false);
+    }
+  };
 
   // --- Helper Functions ---
 
@@ -152,6 +193,10 @@ export default function ProductDetailPage() {
   const handleBuyNow = () => {
     if (!product) return;
 
+    // Debug log to see what data we're passing
+    console.log("Initiating checkout with vendor name:", vendorName);
+    console.log("Product data:", product);
+
     // Assemble the item details for the checkout context
     const checkoutItem = {
       productId: product.id,
@@ -160,7 +205,12 @@ export default function ProductDetailPage() {
       price: calculatePrice(), // Use the final calculated price
       quantity: 1,
       selectedOptions: selectedOptions,
+      vendorId: product.vendorId, // Include vendorId in checkout item
+      vendorName: vendorName || 'Vendor', // Include vendorName in checkout item, with fallback
     };
+
+    // Debug log to see what we're sending
+    console.log("Checkout item:", checkoutItem);
 
     // Trigger the global checkout process
     initiateCheckout(checkoutItem);
@@ -304,6 +354,40 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
+          
+          {/* Other Products from the Same Vendor */}
+          {vendorProducts.length > 0 && (
+            <div className="mt-12 sm:mt-16">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">More from {vendorName}</h2>
+              {vendorProductsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                  {vendorProducts.map((vendorProduct) => (
+                    <div key={vendorProduct.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                      <Link href={`/product/${vendorProduct.slug}`}>
+                        <div className="h-40 bg-gray-100">
+                          <img 
+                            src={vendorProduct.image} 
+                            alt={vendorProduct.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{vendorProduct.name}</h3>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-lg font-bold text-gray-900">{formatPrice(vendorProduct.price)}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </ProtectedRoute>

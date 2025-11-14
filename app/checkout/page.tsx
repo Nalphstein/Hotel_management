@@ -8,17 +8,48 @@ import { useEffect, useState } from 'react';
 // --- Import the Paystack clone modal component ---
 import PaystackCloneModal from '../components/PaystackCloneModal';
 
-// This is a mock function to simulate creating an order record in Firestore.
-// In a real application, this would be a call to a secure Firebase Cloud Function.
+// This function creates an order record.
 async function createOrderInFirestore(user: any, item: any): Promise<string> {
-    console.log("Simulating order creation for user:", user.uid, "with item:", item);
-    // This function would normally:
-    // 1. Call a Cloud Function with the item details (price, productId, vendorId, etc.).
-    // 2. The Cloud Function would create a new document in the top-level `/orders` collection.
-    // 3. The new document's ID would be returned to the client.
+    console.log("Creating order for user:", user.uid, "with item:", item);
     
-    // For this simulation, we'll just return a generated ID.
-    return `ORD-${Date.now()}`; 
+    try {
+        // Generate a unique order ID
+        const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        
+        // Create order object
+        const orderData = {
+            orderId: orderId,
+            userId: user.uid,
+            userEmail: user.email,
+            productId: item.productId || item.id,
+            productName: item.name,
+            productImage: item.image,
+            vendorId: (item.vendorId && typeof item.vendorId === 'string' && item.vendorId.trim() !== '') ? item.vendorId : null,
+            vendorName: item.vendorName || 'Vendor',
+            price: item.price,
+            quantity: item.quantity || 1,
+            selectedOptions: item.selectedOptions || {},
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        
+        // Store order in localStorage for demo purposes
+        try {
+            const existingOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+            existingOrders.push(orderData);
+            localStorage.setItem('userOrders', JSON.stringify(existingOrders));
+            console.log("Order stored in localStorage with ID:", orderId);
+        } catch (storageError) {
+            console.warn("Could not store order in localStorage:", storageError);
+        }
+        
+        // Return the order ID
+        return orderId;
+    } catch (error) {
+        console.error("Error creating order:", error);
+        throw error;
+    }
 }
 
 export default function CheckoutPage() {

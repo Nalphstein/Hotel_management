@@ -112,7 +112,7 @@ export default function PaystackCloneModal({ isOpen, onClose, onSuccess, email, 
         <div className="p-3 text-center">
           <div className="flex items-center justify-center text-sm">
               <LockIcon size={14} className="mr-2 text-gray-500" />
-              <span className="text-gray-500">Secured by <span className="font-bold text-gray-800">paystack</span></span>
+              <span className="text-gray-500">Secured by <span className="font-bold text-gray-800">opay</span></span>
           </div>
         </div>
       </div>

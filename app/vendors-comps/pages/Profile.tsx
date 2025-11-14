@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { UserIcon, MailIcon, PhoneIcon, MapPinIcon, CreditCardIcon, KeyIcon, SaveIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { UserIcon, MailIcon, PhoneIcon, MapPinIcon, CreditCardIcon, KeyIcon, SaveIcon, UploadIcon } from 'lucide-react';
 
 // --- Imports for Firebase and Authentication ---
 import { useAuth } from '../../../context/AuthContext';
@@ -38,6 +38,7 @@ interface PaymentMethod {
 }
 
 const ProfileComponent = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth(); // Get the current authenticated user from our context
 
   // --- State Management ---
@@ -47,6 +48,7 @@ const ProfileComponent = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // --- Effect to Fetch All User-Related Data from Firestore ---
   useEffect(() => {
@@ -68,6 +70,10 @@ const ProfileComponent = () => {
             const fetchedData = userDocSnap.data() as UserProfile;
             setUserData(fetchedData);
             setFormData(fetchedData);
+            // Set preview URL if profile image exists
+            if (fetchedData.profileImage) {
+              setPreviewUrl(fetchedData.profileImage);
+            }
           } else {
             console.error("No user document found for this user!");
           }
@@ -88,6 +94,15 @@ const ProfileComponent = () => {
       fetchUserData();
     }
   }, [user]); // The dependency array ensures this effect runs when the user object is available
+
+  // Clean up preview URL
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   // Handles changes in the edit form, including the nested 'address' object
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,6 +126,51 @@ const ProfileComponent = () => {
     }
   };
 
+  // Handle profile image file selection and convert to data URL
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        setFormData(prev => ({
+          ...prev!,
+          profileImage: dataUrl // Save data URL as profile image
+        }));
+        setPreviewUrl(dataUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Trigger file input click
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle drag and drop for profile image
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        setFormData(prev => ({
+          ...prev!,
+          profileImage: dataUrl // Save data URL as profile image
+        }));
+        setPreviewUrl(dataUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
   // --- Handles Saving Form Changes to Firestore ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,12 +186,27 @@ const ProfileComponent = () => {
         phone: formData.phone,
         role: formData.role || '',
         address: formData.address || {},
+        profileImage: formData.profileImage || '',
       };
       
       await updateDoc(userDocRef, dataToUpdate);
       
       setUserData(formData); // Update the main display state to reflect changes
       setIsEditing(false);
+      
+      // Update localStorage with new profile image
+      const userDataFromStorage = localStorage.getItem('userData');
+      if (userDataFromStorage) {
+        const parsedData = JSON.parse(userDataFromStorage);
+        parsedData.profileImage = formData.profileImage;
+        localStorage.setItem('userData', JSON.stringify(parsedData));
+        
+        // Dispatch custom event to notify VendorLayout of profile image update
+        const event = new CustomEvent('profileImageUpdated', { 
+          detail: { profileImage: formData.profileImage } 
+        });
+        window.dispatchEvent(event);
+      }
     } catch (error) {
       console.error("Error updating profile: ", error);
       alert('Failed to update profile.');
@@ -193,6 +268,41 @@ const ProfileComponent = () => {
               {/* TERNARY: RENDER EITHER THE EDITING FORM OR THE DISPLAY VIEW */}
               {isEditing ? (
                 <form onSubmit={handleSubmit}>
+                  {/* Profile Image Upload Section */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+                    <div 
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors"
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onClick={triggerFileInput}
+                    >
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <UploadIcon className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-600">
+                        <span className="font-medium text-indigo-600">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                    
+                    {/* Image Preview */}
+                    {previewUrl && (
+                      <div className="mt-4 flex justify-center">
+                        <img 
+                          src={previewUrl} 
+                          alt="Profile preview" 
+                          className="w-20 h-20 rounded-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
@@ -233,6 +343,7 @@ const ProfileComponent = () => {
                       onClick={() => {
                         setFormData(userData);
                         setIsEditing(false);
+                        setPreviewUrl(userData.profileImage || null);
                       }}
                       className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >

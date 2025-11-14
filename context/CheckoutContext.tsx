@@ -9,6 +9,8 @@ interface CheckoutItem {
   price: number;
   quantity: number;
   selectedOptions: Record<string, string>;
+  vendorId?: string; // Add vendorId as optional
+  vendorName?: string; // Add vendorName as optional
 }
 
 type CheckoutContextType = {
