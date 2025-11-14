@@ -7,7 +7,7 @@ import Link from 'next/link';
 import ProtectedRoute from '../../components/ProtectedRoute'; 
 import { useCheckout } from '../../../context/CheckoutContext'; // Hook to initiate the checkout flow
 import { db } from '../../../lib/firebase/config';      
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, doc, getDoc, DocumentData } from 'firebase/firestore';
 
 // --- Type Definitions for Data Integrity ---
 // This ensures our code is type-safe and matches our Firestore data model.
@@ -31,6 +31,13 @@ interface Product {
   options?: {
     [key: string]: ProductOption[]; // Allows for various option types (colors, sizes, etc.)
   };
+  vendorId?: string; // Add vendorId to product type
+}
+
+// Define the structure of vendor data
+interface VendorData {
+  username: string;
+  // Add other vendor fields as needed
 }
 
 export default function ProductDetailPage() {
@@ -43,6 +50,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [vendorName, setVendorName] = useState<string>(''); // Store vendor name
 
   // --- Data Fetching Effect ---
   // Fetches the specific product from Firestore based on the 'slug' from the URL
@@ -57,9 +65,26 @@ export default function ProductDetailPage() {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          const productData = { id: doc.id, ...doc.data() } as Product;
+          const productDoc = querySnapshot.docs[0];
+          const productData = { id: productDoc.id, ...productDoc.data() } as Product;
           setProduct(productData);
+          
+          // Use stored vendor name if available, otherwise fetch it
+          if (productData.vendorId) {
+            if (productData.vendorName) {
+              setVendorName(productData.vendorName);
+            } else {
+              try {
+                const vendorDoc = await getDoc(doc(db, 'users', productData.vendorId));
+                if (vendorDoc.exists()) {
+                  const vendorData = vendorDoc.data() as VendorData;
+                  setVendorName(vendorData.username || 'Unknown Vendor');
+                }
+              } catch (error) {
+                console.error("Error fetching vendor name:", error);
+              }
+            }
+          }
           
           // Initialize default option selections for the product
           const initialOptions: Record<string, string> = {};
@@ -223,6 +248,18 @@ export default function ProductDetailPage() {
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
                 <p className="text-gray-600 leading-relaxed text-sm sm:text-base">{product.description}</p>
               </div>
+
+              {/* Vendor name with blue tick */}
+              {vendorName && (
+                <div className="flex items-center">
+                  <span className="text-sm text-gray-600">Sold by </span>
+                  <span className="text-sm font-medium text-gray-900 ml-1">{vendorName}</span>
+                  {/* Blue tick verification badge */}
+                  <svg className="w-4 h-4 text-blue-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
 
               {/* Dynamic Options Rendering */}
               {product.options && (

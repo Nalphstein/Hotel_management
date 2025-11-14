@@ -11,6 +11,9 @@ interface Product {
   price: number;
   stock: number;
   image: string;
+  vendorId: string; // Make vendorId required to match the Products page
+  vendorName?: string; // Add vendorName field
+  features?: string[]; // Add features field
 }
 
 interface ProductCardProps {

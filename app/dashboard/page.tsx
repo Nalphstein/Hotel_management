@@ -17,8 +17,10 @@ type Product = {
   image: string;
   rating?: number; // Marked as optional to handle data that might be missing the field
   reviews?: number; // Marked as optional
-  slug: string;
+  slug?: string; // Make slug optional since we filter for it
   isFeatured?: boolean;
+  vendorId?: string; // Add vendorId to product type
+  vendorName?: string; // Add vendorName field
 };
 
 // --- Reusable Star Rating Component ---
@@ -44,6 +46,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [vendorNames, setVendorNames] = useState<Record<string, string>>({}); // Store vendor names
 
   const categories = ['Food', 'Gadgets', 'Services', 'Supplies', 'Others'];
 
@@ -74,9 +77,10 @@ export default function DashboardPage() {
           // Process the featured product result
           if (!featuredSnapshot.empty) {
             const doc = featuredSnapshot.docs[0];
+            const productData: any = { id: doc.id, ...doc.data() };
             // Safeguard: only set the featured product if it has a slug
-            if (doc.data().slug) {
-              setFeaturedProduct({ id: doc.id, ...doc.data() } as Product);
+            if (productData.slug !== undefined) {
+              setFeaturedProduct(productData as Product);
             }
           }
         } catch (err: any) {
@@ -103,14 +107,47 @@ export default function DashboardPage() {
         const q = query(productsCollection, where("category", "==", activeCategory));
         const querySnapshot = await getDocs(q);
         
-        const fetchedProducts = querySnapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          .filter(p => p.slug) as Product[]; // Safeguard against missing slugs
+        // First, map the documents without type casting
+        const rawData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Then filter and cast to Product type
+        const fetchedProducts = rawData.filter(p => 'slug' in p && p.slug !== undefined) as Product[];
         
         setProducts(fetchedProducts);
+        
+        // Use stored vendor names if available, otherwise fetch them
+        const vendorNamesMap: Record<string, string> = {};
+        
+        // First, use all stored vendor names
+        for (const product of fetchedProducts) {
+          if (product.vendorId && product.vendorName) {
+            vendorNamesMap[product.vendorId] = product.vendorName;
+          }
+        }
+        
+        // Then, fetch missing vendor names (for older products without stored vendorName)
+        const vendorIdsToFetch = fetchedProducts
+          .filter(p => p.vendorId && !p.vendorName)
+          .map(p => p.vendorId) as string[];
+        
+        // Remove duplicates
+        const uniqueVendorIds = [...new Set(vendorIdsToFetch)];
+        
+        for (const vendorId of uniqueVendorIds) {
+          try {
+            const vendorDoc = await getDoc(doc(db, 'users', vendorId));
+            if (vendorDoc.exists()) {
+              vendorNamesMap[vendorId] = vendorDoc.data().username || 'Unknown Vendor';
+            }
+          } catch (error) {
+            console.error(`Error fetching vendor ${vendorId}:`, error);
+          }
+        }
+        
+        setVendorNames(vendorNamesMap);
       } catch (err) {
         console.error("Error fetching products:", err);
         setError('Failed to load products.');
@@ -146,6 +183,17 @@ export default function DashboardPage() {
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Highlight of the week!</h2>
                   <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1">{featuredProduct.name}</h3>
                   <p className="text-gray-600 text-sm mb-3 sm:mb-4 line-clamp-2">{featuredProduct.description}</p>
+                  {/* Vendor name with blue tick for featured product */}
+                  {featuredProduct.vendorId && vendorNames[featuredProduct.vendorId] && (
+                    <div className="flex items-center mb-3">
+                      <span className="text-sm text-gray-600">Sold by </span>
+                      <span className="text-sm font-medium text-gray-900 ml-1">{vendorNames[featuredProduct.vendorId]}</span>
+                      {/* Blue tick verification badge */}
+                      <svg className="w-4 h-4 text-blue-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
                   <div className="mb-3 sm:mb-4">
                     <span className="text-base sm:text-lg font-bold text-gray-900">Starting from {formatPrice(featuredProduct.price)}</span>
                   </div>
@@ -206,6 +254,17 @@ export default function DashboardPage() {
                       <StarRating rating={product.rating || 0} />
                       <span className="ml-2 text-sm text-gray-500">({product.reviews || 0} reviews)</span>
                     </div>
+                    {/* Vendor name with blue tick */}
+                    {product.vendorId && vendorNames[product.vendorId] && (
+                      <div className="flex items-center mb-3">
+                        <span className="text-sm text-gray-600">Sold by </span>
+                        <span className="text-sm font-medium text-gray-900 ml-1">{vendorNames[product.vendorId]}</span>
+                        {/* Blue tick verification badge */}
+                        <svg className="w-4 h-4 text-blue-500 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-gray-900">{formatPrice(product.price)}</span>
                       <Link href={`/product/${product.slug}`}>

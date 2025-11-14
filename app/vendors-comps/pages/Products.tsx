@@ -5,7 +5,7 @@ import { PlusIcon, SearchIcon, FilterIcon, ArrowUpDownIcon } from 'lucide-react'
 // --- Imports for Firebase and Authentication ---
 import { useAuth } from '../../../context/AuthContext';
 import { db } from '../../../lib/firebase/config';
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
 
 // --- Component Imports ---
 import ProductCard from '../components/products/ProductCard';
@@ -22,6 +22,8 @@ interface Product {
   stock: number;
   image: string;
   vendorId: string; // Crucial for security and queries
+  vendorName?: string; // Add vendorName field
+  features?: string[]; // Add features field
 }
 
 // --- Your Predefined Static List of Categories ---
@@ -73,12 +75,20 @@ const ProductsComponent = () => {
 
   // --- Handlers for CRUD (Create, Read, Update, Delete) Operations ---
 
-  const handleAddProduct = async (newProductData: Omit<Product, 'id' | 'vendorId'>) => {
+  const handleAddProduct = async (newProductData: any) => {
     if (!user) return;
     try {
+      // First, get the vendor's username from their profile
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const vendorName = userDoc.exists() ? userDoc.data().username || 'Unknown Vendor' : 'Unknown Vendor';
+      
       const productsRef = collection(db, 'products');
-      const docRef = await addDoc(productsRef, { ...newProductData, vendorId: user.uid });
-      setProducts(prev => [...prev, { id: docRef.id, vendorId: user.uid, ...newProductData }]);
+      const docRef = await addDoc(productsRef, { 
+        ...newProductData, 
+        vendorId: user.uid,
+        vendorName: vendorName // Add the vendor's name directly to the product
+      });
+      setProducts(prev => [...prev, { id: docRef.id, vendorId: user.uid, vendorName, ...newProductData }]);
       setIsAddModalOpen(false);
     } catch (error) {
       console.error("Error adding product:", error);
@@ -114,6 +124,8 @@ const ProductsComponent = () => {
       await updateDoc(productDocRef, dataToUpdate);
       // Update the local state to reflect the changes instantly in the UI
       setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+      setIsEditModalOpen(false);
+      setCurrentProductToEdit(null);
     } catch (error) {
       console.error("Error updating product:", error);
       throw error; // Re-throw to be caught by the modal for its own state management
