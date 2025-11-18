@@ -1,12 +1,12 @@
 'use client';
-import { useCheckout } from '../../context/CheckoutContext';
-import { useAuth } from '../../context/AuthContext';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { useCheckout } from '../../../context/CheckoutContext';
+import { useAuth } from '../../../context/AuthContext';
+import ProtectedRoute from '../../components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 // --- Import the Paystack clone modal component ---
-import PaystackCloneModal from '../components/PaystackCloneModal';
+import PaystackCloneModal from '../../components/PaystackCloneModal';
 
 // This function creates an order record.
 async function createOrderInFirestore(user: any, item: any): Promise<string> {
@@ -88,7 +88,7 @@ export default function CheckoutPage() {
       const orderId = await createOrderInFirestore(user, item);
       
       // On success, redirect the user to the success page, passing the new order ID in the URL
-      router.push(`/order-success/${orderId}`);
+      router.push(`/dashboard/order-success/${orderId}`);
     } catch (error) {
       console.error("Order creation failed after payment simulation:", error);
       alert("There was an error creating your order record. Please try again.");

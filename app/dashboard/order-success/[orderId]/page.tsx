@@ -1,10 +1,10 @@
 'use client';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import ProtectedRoute from '../../components/ProtectedRoute';
+import ProtectedRoute from '../../../components/ProtectedRoute';
 import { CheckCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useCheckout } from '../../../context/CheckoutContext';
+import { useCheckout } from '../../../../context/CheckoutContext';
 
 interface Order {
   id: string;

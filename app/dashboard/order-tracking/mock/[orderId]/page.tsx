@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import ProtectedRoute from '../../../components/ProtectedRoute';
+import ProtectedRoute from '../../../../components/ProtectedRoute';
 import { CheckCircleIcon, ClockIcon, TruckIcon, XCircleIcon } from 'lucide-react';
 
 interface Order {

@@ -4,10 +4,11 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
 // --- Imports for Firebase, Authentication, and Checkout ---
-import ProtectedRoute from '../../components/ProtectedRoute'; 
-import { useCheckout } from '../../../context/CheckoutContext'; // Hook to initiate the checkout flow
-import { db } from '../../../lib/firebase/config';      
-import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
+import ProtectedRoute from '../../../components/ProtectedRoute'; 
+import { useCheckout } from '../../../../context/CheckoutContext'; // Hook to initiate the checkout flow
+import { useAuth } from '../../../../context/AuthContext'; // Hook to get the current user
+import { db } from '../../../../lib/firebase/config';      
+import { collection, query, where, getDocs, limit, doc, getDoc, orderBy, addDoc } from 'firebase/firestore';
 
 // --- Type Definitions for Data Integrity ---
 // This ensures our code is type-safe and matches our Firestore data model.
@@ -35,6 +36,16 @@ interface Product {
   vendorName?: string; // Add vendorName to product type
 }
 
+// Add new interfaces for reviews and ratings
+interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  timestamp: any; // Firestore timestamp
+}
+
 // Define the structure of vendor data
 interface VendorData {
   username?: string;
@@ -48,6 +59,7 @@ export default function ProductDetailPage() {
   const productSlug = params?.slug as string;
   
   const { initiateCheckout } = useCheckout(); // Get the function to start the checkout process
+  const { user } = useAuth(); // Get the current authenticated user
 
   // --- State Management ---
   const [product, setProduct] = useState<Product | null>(null);
@@ -56,6 +68,13 @@ export default function ProductDetailPage() {
   const [vendorName, setVendorName] = useState<string>(''); // Store vendor name
   const [vendorProducts, setVendorProducts] = useState<Product[]>([]); // Store other products from the same vendor
   const [vendorProductsLoading, setVendorProductsLoading] = useState(true);
+  // Add new state for ratings and reviews
+  const [userRating, setUserRating] = useState<number>(0);
+  const [userReview, setUserReview] = useState<string>('');
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [totalReviews, setTotalReviews] = useState<number>(0);
 
   // --- Data Fetching Effect ---
   // Fetches the specific product from Firestore based on the 'slug' from the URL
@@ -149,6 +168,121 @@ export default function ProductDetailPage() {
     } finally {
       setVendorProductsLoading(false);
     }
+  };
+
+  // Fetch reviews for the product
+  useEffect(() => {
+    if (product?.id) {
+      fetchProductReviews(product.id);
+    }
+  }, [product?.id]);
+
+  // Fetch product reviews from Firestore
+  const fetchProductReviews = async (productId: string) => {
+    try {
+      const reviewsRef = collection(db, 'products', productId, 'reviews');
+      const q = query(reviewsRef, orderBy('timestamp', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const reviewsData: Review[] = [];
+      let totalRating = 0;
+      
+      querySnapshot.forEach((doc) => {
+        const reviewData = { id: doc.id, ...doc.data() } as Review;
+        reviewsData.push(reviewData);
+        totalRating += reviewData.rating;
+      });
+      
+      setReviews(reviewsData);
+      setTotalReviews(reviewsData.length);
+      setAverageRating(reviewsData.length > 0 ? totalRating / reviewsData.length : 0);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
+
+  // Submit a new review
+  const submitReview = async () => {
+    if (!user || !product) return;
+    
+    if (userRating === 0) {
+      alert("Please select a star rating");
+      return;
+    }
+    
+    if (userReview.trim() === '') {
+      alert("Please enter a review comment");
+      return;
+    }
+    
+    setIsSubmittingReview(true);
+    
+    try {
+      // Get user's display name
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userName = userDoc.exists() ? 
+        (userDoc.data().username || userDoc.data().othername || user?.email || 'Anonymous') : 
+        'Anonymous';
+      
+      // Create review object
+      const reviewData = {
+        userId: user.uid,
+        userName: userName,
+        rating: userRating,
+        comment: userReview.trim(),
+        timestamp: new Date()
+      };
+      
+      // Add review to Firestore
+      const reviewRef = await addDoc(collection(db, 'products', product.id, 'reviews'), reviewData);
+      
+      // Update product's overall rating
+      const updatedReviews = [...reviews, { id: reviewRef.id, ...reviewData }];
+      const totalRating = updatedReviews.reduce((sum, review) => sum + review.rating, 0);
+      const newAverageRating = updatedReviews.length > 0 ? totalRating / updatedReviews.length : 0;
+      
+      setReviews(updatedReviews);
+      setTotalReviews(updatedReviews.length);
+      setAverageRating(newAverageRating);
+      
+      // Reset form
+      setUserRating(0);
+      setUserReview('');
+      
+      console.log("Review submitted successfully");
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      alert("Failed to submit review. Please try again.");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  // Star rating component
+  const StarRating = ({ rating, onRatingChange }: { rating: number; onRatingChange?: (rating: number) => void }) => {
+    const [hoverRating, setHoverRating] = useState(0);
+    
+    return (
+      <div className="flex">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            className={`text-2xl ${onRatingChange ? 'cursor-pointer' : 'cursor-default'} ${
+              star <= (hoverRating || rating)
+                ? 'text-yellow-400'
+                : 'text-gray-300'
+            }`}
+            onClick={() => onRatingChange && onRatingChange(star)}
+            onMouseEnter={() => onRatingChange && setHoverRating(star)}
+            onMouseLeave={() => onRatingChange && setHoverRating(0)}
+            disabled={!onRatingChange}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+    );
   };
 
   // --- Helper Functions ---
@@ -352,6 +486,87 @@ export default function ProductDetailPage() {
                   )}
                 </ul>
               </div>
+              
+              {/* Ratings and Reviews Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Reviews</h3>
+                
+                {/* Average Rating Display */}
+                <div className="flex items-center mb-6">
+                  <div className="text-3xl font-bold text-gray-900 mr-4">
+                    {averageRating.toFixed(1)}
+                  </div>
+                  <div>
+                    <StarRating rating={Math.round(averageRating)} />
+                    <p className="text-sm text-gray-600 mt-1">
+                      {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Add Review Form (only for authenticated users) */}
+                {user ? (
+                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Write a Review</h4>
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Your Rating
+                      </label>
+                      <StarRating rating={userRating} onRatingChange={setUserRating} />
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="review" className="block text-sm font-medium text-gray-700 mb-1">
+                        Your Review
+                      </label>
+                      <textarea
+                        id="review"
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Share your experience with this product..."
+                        value={userReview}
+                        onChange={(e) => setUserReview(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+                      onClick={submitReview}
+                      disabled={isSubmittingReview}
+                    >
+                      {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+                    <p className="text-yellow-800 text-sm">
+                      Please <Link href="/login" className="font-medium underline">sign in</Link> to write a review.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Reviews List */}
+                {reviews.length > 0 ? (
+                  <div className="space-y-6">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
+                        <div className="flex justify-between mb-2">
+                          <div className="font-medium text-gray-900">{review.userName}</div>
+                          <div className="text-sm text-gray-500">
+                            {review.timestamp.toDate ? review.timestamp.toDate().toLocaleDateString() : new Date(review.timestamp).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="mb-2">
+                          <StarRating rating={review.rating} />
+                        </div>
+                        <p className="text-gray-700">{review.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No reviews yet. Be the first to review this product!</p>
+                )}
+              </div>
+              
             </div>
           </div>
           
@@ -367,7 +582,7 @@ export default function ProductDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   {vendorProducts.map((vendorProduct) => (
                     <div key={vendorProduct.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                      <Link href={`/product/${vendorProduct.slug}`}>
+                      <Link href={`/dashboard/product/${vendorProduct.slug}`}>
                         <div className="h-40 bg-gray-100">
                           <img 
                             src={vendorProduct.image} 

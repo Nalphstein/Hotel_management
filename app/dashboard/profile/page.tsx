@@ -305,7 +305,7 @@ export default function ProfilePage() {
                               </span>
                             </div>
                             
-                            <Link href={`/order-tracking/${order.orderId}`}>
+                            <Link href={`/dashboard/order-tracking/${order.orderId}`}>
                               <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                                 Track Order
                               </span>

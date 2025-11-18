@@ -26,7 +26,7 @@ export const CheckoutProvider = ({ children }: { children: ReactNode }) => {
 
   const initiateCheckout = (checkoutItem: CheckoutItem) => {
     setItem(checkoutItem);
-    router.push('/checkout'); // Redirect to the checkout page
+    router.push('/dashboard/checkout'); // Redirect to the checkout page
   };
 
   return (

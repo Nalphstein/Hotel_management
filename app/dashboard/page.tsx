@@ -267,7 +267,7 @@ export default function DashboardPage() {
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-gray-900">{formatPrice(product.price)}</span>
-                      <Link href={`/product/${product.slug}`}>
+                      <Link href={`/dashboard/product/${product.slug}`}>
                         <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm">
                           Buy now
                         </button>
