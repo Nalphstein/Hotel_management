@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 export default function AboutPage() {
   return (
@@ -90,12 +91,12 @@ export default function AboutPage() {
                 If you're interested in joining our team, we'd love to hear from you.
               </p>
               <div className="flex justify-center">
-                <a 
+                <Link 
                   href="/contact" 
                   className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
                 >
                   Contact Us
-                </a>
+                </Link>
               </div>
             </div>
           </div>

@@ -19,7 +19,7 @@ interface Order {
   createdAt: any; // Firestore timestamp
 }
 
-export default function OrderSuccessPage() {
+export default function OrderSuccessClient() {
     const params = useParams();
     const orderId = params?.orderId as string;
     

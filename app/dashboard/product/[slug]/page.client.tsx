@@ -54,7 +54,7 @@ interface VendorData {
   // Add other vendor fields as needed
 }
 
-export default function ProductDetailPage() {
+export default function ProductDetailClient() {
   const params = useParams();
   const productSlug = params?.slug as string;
   

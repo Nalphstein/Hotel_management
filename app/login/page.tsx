@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase/config';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -86,9 +87,9 @@ export default function LoginPage() {
                 <div className="flex-1 text-center py-2 bg-orange-400 text-white rounded-md font-medium">
                   Sign in
                 </div>
-                <a href="/signup" className="flex-1 text-center py-2 text-gray-600 hover:text-gray-800">
+                <Link href="/signup" className="flex-1 text-center py-2 text-gray-600 hover:text-gray-800">
                   Sign Up
-                </a>
+                </Link>
               </div>
 
               <div className="text-center mb-8">
@@ -148,9 +149,9 @@ export default function LoginPage() {
                     </label>
                   </div>
                   
-                  <a href="/forgot-password" className="text-orange-400 hover:text-orange-500 text-sm">
+                  <Link href="/forgot-password" className="text-orange-400 hover:text-orange-500 text-sm">
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="pt-4">

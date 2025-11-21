@@ -1,11 +1,11 @@
 'use client';
 import React from 'react';
-import StoreCard from '../vendors-comps/components/StoreCard';
-import ChatPerformanceCard from '../vendors-comps/components/ChatPerformanceCard';
-import SalesOverviewCard from '../vendors-comps/components/SalesOverviewCard';
-import SalesCategoriesCard from '../vendors-comps/components/SalesCategoriesCard';
-import ProductTransactionTable from '../vendors-comps/components/ProductTransactionTable';
-import VendorLayout from './components/VendorLayout';
+import StoreCard from '../../../app/vendors-comps/components/StoreCard';
+import ChatPerformanceCard from '../../../app/vendors-comps/components/ChatPerformanceCard';
+import SalesOverviewCard from '../../../app/vendors-comps/components/SalesOverviewCard';
+import SalesCategoriesCard from '../../../app/vendors-comps/components/SalesCategoriesCard';
+import ProductTransactionTable from '../../../app/vendors-comps/components/ProductTransactionTable';
+import VendorLayout from '../../../app/vendor/components/VendorLayout';
 
 const VendorDashboard = () => {
   return (

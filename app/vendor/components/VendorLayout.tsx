@@ -143,12 +143,20 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                     >
                       Profile
                     </Link>
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <Link 
+                      href="/vendor/settings" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
                       Settings
-                    </a>
-                    <a href="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    </Link>
+                    <Link 
+                      href="/" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
                       Sign out
-                    </a>
+                    </Link>
                   </div>
                 )}
               </div>

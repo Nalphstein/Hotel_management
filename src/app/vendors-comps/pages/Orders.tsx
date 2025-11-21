@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SearchIcon, FilterIcon, ArrowUpDownIcon, EyeIcon, DownloadIcon } from 'lucide-react';
-import OrderDetailsModal from '../components/orders/OrderDetailsModal';
+import OrderDetailsModal from '../../../app/vendors-comps/components/orders/OrderDetailsModal';
 // Mock order data
 interface OrderItem {
   id: number;
@@ -171,14 +171,29 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('date-desc');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  
+  const handleUpdateStatus = (orderId: string, newStatus: string) => {
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
+    
+    // Also update the selected order if it's the one being updated
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, status: newStatus });
+    }
+  };
+  
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) || order.customer.toLowerCase().includes(searchTerm.toLowerCase()) || order.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+  
   const sortedOrders = [...filteredOrders].sort((a, b) => {
-    if (sortBy === 'date-asc') return new Date(a.date) - new Date(b.date);
-    if (sortBy === 'date-desc') return new Date(b.date) - new Date(a.date);
+    if (sortBy === 'date-asc') return new Date(a.date).getTime() - new Date(b.date).getTime();
+    if (sortBy === 'date-desc') return new Date(b.date).getTime() - new Date(a.date).getTime();
     if (sortBy === 'total-asc') return a.total - b.total;
     if (sortBy === 'total-desc') return b.total - a.total;
     return 0;
@@ -200,65 +215,63 @@ const Orders = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  const handleViewOrder = (order: Order) => {
-    setSelectedOrder(order);
-  };
-  const handleCloseModal = () => {
-    setSelectedOrder(null);
-  };
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setOrders(orders.map(order => order.id === orderId ? {
-      ...order,
-      status: newStatus
-    } : order));
-    setSelectedOrder(prev => prev ? {
-      ...prev,
-      status: newStatus
-    } : null);
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
   return <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Orders</h1>
-        <button className="mt-4 md:mt-0 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg flex items-center text-sm font-medium">
+        <button className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
           <DownloadIcon size={16} className="mr-2" />
-          Export Orders
+          Export
         </button>
       </div>
+
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-            <div className="relative flex-grow">
-              <input type="text" placeholder="Search by order ID, customer name or email..." className="text-black w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <input type="text" placeholder="Search orders..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <div className="absolute left-3 top-2.5 text-gray-400">
                 <SearchIcon size={16} />
               </div>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex space-x-3">
               <div className="relative">
-                <select className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                  {statuses.map(status => <option key={status} value={status}>
-                      {status}
-                    </option>)}
+                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                  {statuses.map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                  <FilterIcon size={14} />
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
                 </div>
               </div>
               <div className="relative">
-                <select className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                  <option value="date-desc">Date: Newest First</option>
-                  <option value="date-asc">Date: Oldest First</option>
-                  <option value="total-desc">Total: High to Low</option>
-                  <option value="total-asc">Total: Low to High</option>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-10 pr-8 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                  <option value="date-desc">Newest First</option>
+                  <option value="date-asc">Oldest First</option>
+                  <option value="total-desc">Highest Amount</option>
+                  <option value="total-asc">Lowest Amount</option>
                 </select>
+                <div className="absolute left-3 top-2.5 text-gray-400">
+                  <ArrowUpDownIcon size={16} />
+                </div>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                  <ArrowUpDownIcon size={14} />
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
                 </div>
               </div>
+              <button className="flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                <FilterIcon size={16} className="mr-1.5" />
+                More Filters
+              </button>
             </div>
           </div>
         </div>
       </div>
+      
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -273,42 +286,45 @@ const Orders = () => {
               </tr>
             </thead>
             <tbody>
-              {sortedOrders.map(order => <tr key={order.id} className="border-b border-gray-100 text-sm hover:bg-gray-50">
-                  <td className="px-4 py-4 font-medium text-black">{order.id}</td>
+              {sortedOrders.length > 0 ? sortedOrders.map(order => <tr key={order.id} className="border-b border-gray-100 text-sm hover:bg-gray-50">
+                  <td className="px-4 py-4 font-medium">{order.id}</td>
                   <td className="px-4 py-4">
                     <div>
-                      <p className="font-medium text-gray-800">
-                        {order.customer}
-                      </p>
+                      <p className="font-medium text-gray-800">{order.customer}</p>
                       <p className="text-gray-500 text-xs">{order.email}</p>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-gray-600">
-                    {new Date(order.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-4 font-medium text-black">
-                    ${order.total.toFixed(2)}
-                  </td>
+                  <td className="px-4 py-4 text-gray-600">{new Date(order.date).toLocaleDateString()}</td>
+                  <td className="px-4 py-4 font-medium">{formatCurrency(order.total)}</td>
                   <td className="px-4 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </td>
                   <td className="px-4 py-4">
-                    <button className="text-indigo-600 hover:text-indigo-800 flex items-center" onClick={() => handleViewOrder(order)}>
-                      <EyeIcon size={16} className="mr-1" />
-                      View
+                    <button className="text-indigo-600 hover:text-indigo-800 flex items-center" onClick={() => setSelectedOrder(order)}>
+                      <EyeIcon size={16} className="mr-1" /> View
                     </button>
                   </td>
-                </tr>)}
+                </tr>) : <tr>
+                  <td colSpan={6} className="text-center py-10 text-gray-500">
+                    No orders found matching your criteria.
+                  </td>
+                </tr>}
             </tbody>
           </table>
         </div>
-        {sortedOrders.length === 0 && <div className="text-center py-10">
-            <p className="text-gray-500">No orders found.</p>
-          </div>}
       </div>
-      {selectedOrder && <OrderDetailsModal order={selectedOrder} onClose={handleCloseModal} onUpdateStatus={(newStatus: string) => updateOrderStatus(selectedOrder.id, newStatus)} />}
+      
+      {selectedOrder && (
+  <OrderDetailsModal 
+    order={selectedOrder} 
+    onClose={() => setSelectedOrder(null)} 
+    onUpdateStatus={(newStatus: string) => handleUpdateStatus(selectedOrder.id, newStatus)} 
+  />
+)}
+
     </div>;
 };
+
 export default Orders;

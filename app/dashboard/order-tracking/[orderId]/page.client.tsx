@@ -29,6 +29,8 @@ const orderStatusSteps = [
   { id: 'delivered', label: 'Delivered', description: 'Order has been delivered' }
 ];
 
+// This function is required for static export with dynamic routes
+
 export default function OrderTrackingPage() {
   const params = useParams();
   const orderId = params?.orderId as string;

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase/config'; // Adjust this path if your config is elsewhere
+import Link from 'next/link';
 
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -132,9 +133,9 @@ export default function SignupPage() {
 
             <div className="w-full max-w-md mx-auto lg:mx-0">
               <div className="flex mb-8 bg-gray-100 rounded-lg p-1">
-                <a href="/login" className="flex-1 text-center py-2 text-gray-600 hover:text-gray-800">
+                <Link href="/login" className="flex-1 text-center py-2 text-gray-600 hover:text-gray-800">
                   Sign in
-                </a>
+                </Link>
                 <div className="flex-1 text-center py-2 bg-orange-400 text-white rounded-md font-medium">
                   Sign Up
                 </div>
@@ -309,9 +310,9 @@ export default function SignupPage() {
               <div className="text-center mt-6">
                 <p className="text-sm text-gray-600">
                   Already have an account?{' '}
-                  <a href="/login" className="font-medium text-orange-500 hover:text-orange-600">
+                  <Link href="/login" className="font-medium text-orange-500 hover:text-orange-600">
                     Sign in here
-                  </a>
+                  </Link>
                 </p>
               </div>
             </div>

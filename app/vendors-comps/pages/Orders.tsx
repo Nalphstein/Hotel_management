@@ -25,7 +25,17 @@ interface Order {
   paymentMethod: string;
 }
 
-const OrdersComponent = () => {
+// Add interface for TransactionData if it doesn't exist
+interface TransactionData {
+  id: string;
+  // Add other properties as needed based on your actual data structure
+  amount: number;
+  date: Timestamp;
+  status: string;
+}
+
+// Update the component to accept transactions prop
+const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] }) => {
   const { user } = useAuth(); // Get the current authenticated vendor
 
   // --- State Management ---

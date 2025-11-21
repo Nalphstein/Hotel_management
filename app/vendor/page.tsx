@@ -25,8 +25,9 @@ interface OrderData {
 
 interface TransactionData extends OrderData {
   id: string;
+  orderId: string; // Add the missing orderId field
   productName: string;
-  status: string;
+  status: 'Pending' | 'Processing' | 'Shipped' | 'Completed' | 'Cancelled' | 'Unpaid'; // Match the enum type
 }
 
 interface DashboardData {

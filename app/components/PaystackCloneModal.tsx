@@ -2,9 +2,24 @@
 import { useState, useEffect } from 'react';
 import { LockIcon, CheckIcon } from 'lucide-react';
 
-// --- The PaystackMenuIcon SVG component has been removed ---
+// Define the props interface
+interface PaystackCloneModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  email: string;
+  amount: number;
+  currency?: string;
+}
 
-export default function PaystackCloneModal({ isOpen, onClose, onSuccess, email, amount, currency = 'NGN' }) {
+export default function PaystackCloneModal({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  email, 
+  amount, 
+  currency = 'NGN' 
+}: PaystackCloneModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [cardData, setCardData] = useState({ number: '', expiry: '', cvv: '' });
@@ -88,7 +103,6 @@ export default function PaystackCloneModal({ isOpen, onClose, onSuccess, email, 
                 <div className="relative flex-1 group">
                   <label className="absolute top-2 left-3 text-xs font-bold uppercase tracking-wider text-gray-400 group-focus-within:text-[#3C74FF]">CVV</label>
                   <input type="text" name="cvv" value={cardData.cvv} onChange={handleChange} placeholder="123" className="w-full pt-6 pb-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:border-[#3C74FF] text-gray-800" />
-   
                 </div>
               </div>
             </div>

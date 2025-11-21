@@ -11,13 +11,13 @@ import { collection, query, where, orderBy, limit, onSnapshot, doc, deleteDoc, T
 // This ensures type safety and matches the data structure in Firestore.
 interface Transaction {
   id: string; // The Firestore document ID
-  orderId: string; // Your readable ID, e.g., 'ORD-2025-0001'
+  orderId?: string; // Make orderId optional to handle cases where it's not present
   productName: string;
   category: string; // Used for the icon
   createdAt: Timestamp; // Use Firestore's Timestamp for accurate ordering
   amount: number;
   status: 'Pending' | 'Processing' | 'Shipped' | 'Completed' | 'Cancelled' | 'Unpaid';
-}
+};
 
 // Helper function to get an icon based on the product category
 const getProductIcon = (category: string) => {
@@ -38,17 +38,28 @@ const getProductIcon = (category: string) => {
     }
 };
 
-const ProductTransactionTable = () => {
+// Define props interface
+interface ProductTransactionTableProps {
+  transactions?: Transaction[]; // Make it optional to maintain backward compatibility
+}
+
+// Update component to accept props
+const ProductTransactionTable = ({ transactions }: ProductTransactionTableProps) => {
   const { user } = useAuth(); // Get the current authenticated vendor from our context
   
   // --- State Management ---
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  // Only use internal state if no transactions prop is provided
+  const [internalTransactions, setInternalTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Use either the prop transactions or internal state
+  const effectiveTransactions = transactions || internalTransactions;
+  const useInternalData = !transactions;
 
   // --- Effect to Listen for Real-Time Transaction Updates ---
   useEffect(() => {
-    // Only run the query if the user object is available
-    if (user) {
+    // Only run the query if the user object is available and we're using internal data
+    if (user && useInternalData) {
       setIsLoading(true);
       // Create a query to get the 10 most recent orders for this vendor,
       // ordered by the creation date in descending order.
@@ -67,14 +78,19 @@ const ProductTransactionTable = () => {
           id: doc.id,
           ...doc.data()
         })) as Transaction[];
-        setTransactions(fetchedTransactions);
+        if (useInternalData) {
+          setInternalTransactions(fetchedTransactions);
+        }
         setIsLoading(false);
       });
 
       // Cleanup function: Detach the listener when the component unmounts to prevent memory leaks.
       return () => unsubscribe();
+    } else if (!useInternalData) {
+      // If we're using external transactions, we're not loading
+      setIsLoading(false);
     }
-  }, [user]); // The dependency array ensures this effect re-runs if the user logs in/out
+  }, [user, useInternalData]); // The dependency array ensures this effect re-runs if the user logs in/out
 
   // --- Handler for Deleting a Transaction ---
   const handleDelete = async (transactionId: string) => {
@@ -143,13 +159,13 @@ const ProductTransactionTable = () => {
             <tbody>
               {isLoading ? (
                 <tr><td colSpan={7} className="text-center py-10 text-gray-500">Loading latest transactions...</td></tr>
-              ) : transactions.length === 0 ? (
+              ) : effectiveTransactions.length === 0 ? (
                 <tr><td colSpan={7} className="text-center py-10 text-gray-500">No transactions found.</td></tr>
               ) : (
-                transactions.map((transaction) => (
+                effectiveTransactions.map((transaction) => (
                   <tr key={transaction.id} className="border-b border-gray-100 text-sm hover:bg-gray-50">
                     <td className="py-4"><input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" /></td>
-                    <td className="py-4 text-gray-600 font-medium">{transaction.orderId}</td>
+                    <td className="py-4 text-gray-600 font-medium">{transaction.orderId || transaction.id}</td>
                     <td className="py-4">
                       <div className="flex items-center">
                         <span className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg mr-3 text-lg">

@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 
 // --- Imports for Firebase and Authentication ---
-import { useAuth } from '../../../../context/AuthContext'; // Adjust path
-import { db } from '../../../../lib/firebase/config';      // Adjust path
+import { useAuth } from '../../../../../../context/AuthContext'; // Adjust path
+import { db } from '../../../../../../lib/firebase/config.js';      // Adjust path
 import { collection, query, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
 
 // --- Type Definition for an Activity document ---
