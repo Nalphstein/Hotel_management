@@ -28,6 +28,7 @@ export default function DashboardLayout({
   const [userName, setUserName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // For mobile menu
 
   // Effect hook to fetch user data and set up real-time listeners
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Shared Dashboard Header */}
+      {/* Shared Dashboard Header */};
       <header className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -93,8 +94,24 @@ export default function DashboardLayout({
               <span className="text-xl font-semibold text-gray-900 hidden sm:block">Horizon</span>
             </Link>
             
+            {/* Hamburger Menu Button (Mobile) */}
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="text-gray-700 hover:text-gray-900 focus:outline-none"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
+            
             {/* Search Bar */}
-            <div className="flex-1 max-w-lg mx-4 sm:mx-8">
+            <div className="hidden md:flex-1 md:max-w-lg mx-4 sm:mx-8">
               <form onSubmit={handleSearch} className="relative">
                 <input
                   type="text"
@@ -111,8 +128,8 @@ export default function DashboardLayout({
               </form>
             </div>
             
-            {/* Navigation Icons & Links */}
-            <div className="flex items-center space-x-4 sm:space-x-6">
+            {/* Navigation Icons & Links - Desktop */}
+            <div className="hidden md:flex items-center space-x-4 sm:space-x-6">
               <Link 
                 href="/dashboard" 
                 className={`text-gray-600 hover:text-gray-900 text-sm sm:text-base ${pathname === '/dashboard' ? 'text-gray-900 font-medium' : ''}`}
@@ -158,6 +175,75 @@ export default function DashboardLayout({
             </div>
           </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-t">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              {/* Search Bar - Mobile */}
+              <div className="px-3 py-2">
+                <form onSubmit={handleSearch} className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder='Search products, services...'
+                    className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 bg-gray-100 rounded-full focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500 text-sm"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </form>
+              </div>
+              
+              {/* Navigation Links - Mobile */}
+              <Link 
+                href="/dashboard" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${pathname === '/dashboard' ? 'text-gray-900 font-medium bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link 
+                href="/dashboard/help" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${pathname === '/dashboard/help' ? 'text-gray-900 font-medium bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Help
+              </Link>
+              <Link 
+                href="/dashboard/profile" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${pathname === '/dashboard/profile' ? 'text-gray-900 font-medium bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Profile
+              </Link>
+              <Link 
+                href="/dashboard/notifications" 
+                className={`block px-3 py-2 rounded-md text-base font-medium relative ${pathname === '/dashboard/notifications' ? 'text-gray-900 font-medium bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Notifications
+                {unreadNotifications > 0 && (
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </Link>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Page Content Rendered Here */}
