@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { db } from '../../../lib/firebase/config';
-import { collection, query, where, orderBy, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { CheckCircleIcon, ClockIcon, TruckIcon, XCircleIcon } from 'lucide-react';
 
 interface Order {
@@ -35,23 +35,49 @@ export default function VendorOrders() {
 
   const fetchVendorOrders = async () => {
     try {
+      // Listen to main orders collection where vendorId matches current vendor
       const ordersRef = collection(db, 'orders');
-      const q = query(
-        ordersRef, 
-        where('vendorId', '==', user!.uid),
-        orderBy('createdAt', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
-      
-      const ordersData: Order[] = [];
-      querySnapshot.forEach((doc) => {
-        ordersData.push({ id: doc.id, ...doc.data() } as Order);
+      const q = query(ordersRef, where('vendorId', '==', user!.uid), orderBy('createdAt', 'desc'));
+
+      // onSnapshot creates a real-time listener.
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        console.log("Vendor orders snapshot:", snapshot.size, "documents");
+        const fetchedOrders: Order[] = [];
+        
+        snapshot.forEach((doc) => {
+          const orderData: any = doc.data();
+          console.log("Order data:", orderData);
+          
+          const order = { 
+            id: doc.id, 
+            orderId: orderData.orderId,
+            productName: orderData.productName,
+            productImage: orderData.productImage,
+            price: orderData.price,
+            quantity: orderData.quantity,
+            selectedOptions: orderData.selectedOptions || {},
+            buyerId: orderData.buyerId,
+            buyerEmail: orderData.buyerEmail || 'customer@example.com',
+            vendorName: orderData.vendorName || 'Vendor',
+            status: orderData.status || 'pending',
+            createdAt: orderData.createdAt
+          } as Order;
+          
+          fetchedOrders.push(order);
+        });
+        
+        console.log("Fetched orders:", fetchedOrders);
+        setOrders(fetchedOrders);
+        setLoading(false);
+      }, (error) => {
+        console.error("Error in vendor orders listener:", error);
+        setLoading(false);
       });
-      
-      setOrders(ordersData);
+
+      // Cleanup the listener when the component unmounts
+      return () => unsubscribe();
     } catch (error) {
       console.error("Error fetching orders:", error);
-    } finally {
       setLoading(false);
     }
   };
@@ -62,7 +88,7 @@ export default function VendorOrders() {
       const orderRef = doc(db, 'orders', orderId);
       await updateDoc(orderRef, {
         status: newStatus,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       });
       
       // Update local state
@@ -87,7 +113,9 @@ export default function VendorOrders() {
   // Helper to format date
   const formatDate = (date: any) => {
     if (!date) return 'N/A';
-    return new Date(date.seconds * 1000).toLocaleDateString();
+    // Handle both Firestore Timestamp and Date objects
+    const d = date.toDate ? date.toDate() : new Date(date.seconds * 1000);
+    return d.toLocaleDateString();
   };
 
   // Status badge styling
@@ -196,7 +224,7 @@ export default function VendorOrders() {
                       {formatDate(order.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatPrice(order.price)}
+                      {formatPrice(order.price * order.quantity)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`}>
@@ -211,7 +239,7 @@ export default function VendorOrders() {
                             <button
                               onClick={() => updateOrderStatus(order.id, 'processing')}
                               disabled={updatingOrderId === order.id}
-                              className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                              className="bg-blue-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
                             >
                               {updatingOrderId === order.id ? 'Processing...' : 'Process'}
                             </button>
@@ -220,7 +248,7 @@ export default function VendorOrders() {
                             <button
                               onClick={() => updateOrderStatus(order.id, 'shipped')}
                               disabled={updatingOrderId === order.id}
-                              className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                              className="bg-indigo-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
                             >
                               {updatingOrderId === order.id ? 'Shipping...' : 'Ship'}
                             </button>
@@ -229,20 +257,20 @@ export default function VendorOrders() {
                             <button
                               onClick={() => updateOrderStatus(order.id, 'delivered')}
                               disabled={updatingOrderId === order.id}
-                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                              className="bg-green-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
                             >
                               {updatingOrderId === order.id ? 'Delivering...' : 'Deliver'}
                             </button>
                           )}
-                          <button
-                            onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                            disabled={updatingOrderId === order.id}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
                         </div>
                       )}
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                        disabled={updatingOrderId === order.id}
+                        className="text-red-600 hover:text-red-900 ml-2 text-xs disabled:opacity-50"
+                      >
+                        {updatingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
+                      </button>
                     </td>
                   </tr>
                 ))}

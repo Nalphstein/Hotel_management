@@ -139,7 +139,7 @@ export default function ProfilePage() {
     try {
       const storedOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
       // Filter orders for current user
-      const userOrders = storedOrders.filter((order: any) => order.userId === user.uid);
+      const userOrders = storedOrders.filter((order: any) => order.buyerId === user.uid);
       
       // Convert stored orders to the expected format
       const formattedOrders = userOrders.map((order: any) => ({
@@ -172,7 +172,7 @@ export default function ProfilePage() {
         const orderRefData = docSnapshot.data();
         try {
           // Get the actual order document
-          const orderDocRef = doc(db, 'orders', orderRefData.orderId);
+          const orderDocRef = doc(db, 'orders', orderRefData.orderDocId || orderRefData.orderId);
           const orderDoc = await getDoc(orderDocRef);
           
           if (orderDoc.exists()) {
@@ -208,6 +208,10 @@ export default function ProfilePage() {
       console.warn('Could not fetch orders from Firestore (permissions error). This is expected in development.', error);
       // If we have orders from localStorage, don't show loading state
       if (orders.length > 0) {
+        setLoading(false);
+      } else {
+        // If we don't have any orders in localStorage either, show an empty state
+        setOrders([]);
         setLoading(false);
       }
     });

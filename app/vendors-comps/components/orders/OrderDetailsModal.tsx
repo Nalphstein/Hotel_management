@@ -114,7 +114,12 @@ const OrderDetailsModal = ({
               {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(status => (
                 <button 
                   key={status} 
-                  onClick={() => onUpdateStatus(status)}
+                  onClick={() => {
+                    console.log("Update status button clicked, status:", status);
+                    console.log("Order object:", order);
+                    console.log("onUpdateStatus function:", onUpdateStatus);
+                    onUpdateStatus(status);
+                  }}
                   disabled={order.status === status}
                   className={`px-3 py-1 rounded-md text-sm ${
                     order.status === status 

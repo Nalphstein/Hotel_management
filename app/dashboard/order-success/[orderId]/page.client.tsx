@@ -6,7 +6,7 @@ import { CheckCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useCheckout } from '../../../../context/CheckoutContext';
 import { db } from '../../../../lib/firebase/config';
-import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
 interface Order {
   id: string;
@@ -53,7 +53,36 @@ export default function OrderSuccessClient() {
             }
             
             try {
-                // First try to get order from Firestore
+                // First try to find the order by orderId in the orders collection
+                const ordersRef = collection(db, 'orders');
+                const q = query(ordersRef, where('orderId', '==', orderId));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const orderDoc = querySnapshot.docs[0];
+                    const orderData = { id: orderDoc.id, ...orderDoc.data() } as Order;
+                    setOrder(orderData);
+                    
+                    // Store in localStorage for consistency
+                    try {
+                        const existingOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+                        const orderExists = existingOrders.some((o: any) => o.orderId === orderId);
+                        if (!orderExists) {
+                            existingOrders.push(orderData);
+                            localStorage.setItem('userOrders', JSON.stringify(existingOrders));
+                        }
+                    } catch (storageError) {
+                        console.warn("Could not store order in localStorage:", storageError);
+                    }
+                    setLoading(false);
+                    return;
+                }
+            } catch (firestoreError) {
+                console.warn("Could not fetch order from Firestore by orderId:", firestoreError);
+            }
+            
+            // If not found by orderId, try to get order by document ID
+            try {
                 const orderRef = doc(db, 'orders', orderId);
                 const orderSnap = await getDoc(orderRef);
                 
@@ -72,60 +101,46 @@ export default function OrderSuccessClient() {
                     } catch (storageError) {
                         console.warn("Could not store order in localStorage:", storageError);
                     }
-                } else if (item) {
-                    // Fallback to context if Firestore order doesn't exist
-                    const orderData: Order = {
-                        id: orderId,
-                        orderId: orderId,
-                        productName: item.name,
-                        productImage: item.image,
-                        price: item.price,
-                        quantity: item.quantity || 1,
-                        selectedOptions: item.selectedOptions || {},
-                        vendorName: item.vendorName || 'Vendor',
-                        status: 'pending',
-                        createdAt: new Date(),
-                        clientName: 'Customer',
-                        clientEmail: 'customer@example.com'
-                    };
-                    
-                    setOrder(orderData);
-                    
-                    // Store in localStorage
-                    try {
-                        const existingOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
-                        const orderExists = existingOrders.some((o: any) => o.orderId === orderId);
-                        if (!orderExists) {
-                            existingOrders.push(orderData);
-                            localStorage.setItem('userOrders', JSON.stringify(existingOrders));
-                        }
-                    } catch (storageError) {
-                        console.warn("Could not store order in localStorage:", storageError);
-                    }
+                    setLoading(false);
+                    return;
                 }
             } catch (error) {
-                console.error("Error fetching order:", error);
-                // Fallback to context if there's an error
-                if (item) {
-                    const orderData: Order = {
-                        id: orderId,
-                        orderId: orderId,
-                        productName: item.name,
-                        productImage: item.image,
-                        price: item.price,
-                        quantity: item.quantity || 1,
-                        selectedOptions: item.selectedOptions || {},
-                        vendorName: item.vendorName || 'Vendor',
-                        status: 'pending',
-                        createdAt: new Date(),
-                        clientName: 'Customer',
-                        clientEmail: 'customer@example.com'
-                    };
-                    setOrder(orderData);
-                }
-            } finally {
-                setLoading(false);
+                console.error("Error fetching order by document ID:", error);
             }
+            
+            // Fallback to context if Firestore order doesn't exist
+            if (item) {
+                const orderData: Order = {
+                    id: orderId,
+                    orderId: orderId,
+                    productName: item.name,
+                    productImage: item.image,
+                    price: item.price,
+                    quantity: item.quantity || 1,
+                    selectedOptions: item.selectedOptions || {},
+                    vendorName: item.vendorName || 'Vendor',
+                    status: 'pending',
+                    createdAt: new Date(),
+                    clientName: 'Customer',
+                    clientEmail: 'customer@example.com'
+                };
+                
+                setOrder(orderData);
+                
+                // Store in localStorage
+                try {
+                    const existingOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+                    const orderExists = existingOrders.some((o: any) => o.orderId === orderId);
+                    if (!orderExists) {
+                        existingOrders.push(orderData);
+                        localStorage.setItem('userOrders', JSON.stringify(existingOrders));
+                    }
+                } catch (storageError) {
+                    console.warn("Could not store order in localStorage:", storageError);
+                }
+            }
+            
+            setLoading(false);
         };
         
         fetchOrder();

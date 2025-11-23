@@ -5,7 +5,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { db } from '../../../lib/firebase/config';
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 // --- Import the Paystack clone modal component ---
 import PaystackCloneModal from '../../components/PaystackCloneModal';
@@ -28,10 +28,10 @@ async function createOrderInFirestore(user: any, item: any): Promise<string> {
             clientName = user.email.split('@')[0];
         }
         
-        // Create order object
+        // Create order object with correct field names for Firestore rules
         const orderData = {
             orderId: orderId,
-            userId: user.uid,
+            buyerId: user.uid,  // Changed from userId to buyerId to match rules
             clientName: clientName,
             clientEmail: user.email,
             productId: item.productId || item.id,
@@ -46,6 +46,11 @@ async function createOrderInFirestore(user: any, item: any): Promise<string> {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
+        
+        // Validate required fields before attempting to save
+        if (!orderData.vendorId) {
+            throw new Error("Vendor information is missing. Cannot create order.");
+        }
         
         // Save order to Firestore
         const ordersRef = collection(db, 'orders');
@@ -96,6 +101,14 @@ async function createOrderInFirestore(user: any, item: any): Promise<string> {
         return orderId;
     } catch (error) {
         console.error("Error creating order:", error);
+        // Provide more specific error messages
+        if (error instanceof Error) {
+            if (error.message.includes("permission")) {
+                throw new Error("Permission denied when creating order. Please check your authentication.");
+            } else if (error.message.includes("vendor")) {
+                throw new Error("Vendor information is missing. Cannot create order.");
+            }
+        }
         throw error;
     }
 }
@@ -139,7 +152,12 @@ export default function CheckoutPage() {
       router.push(`/dashboard/order-success/${orderId}`);
     } catch (error) {
       console.error("Order creation failed after payment simulation:", error);
-      alert("There was an error creating your order record. Please try again.");
+      // Show more specific error message to user
+      let errorMessage = "There was an error creating your order record. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      alert(errorMessage);
       setIsCreatingOrder(false); // Reset loading state on error
     }
   };

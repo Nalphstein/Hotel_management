@@ -5,7 +5,7 @@ import { SearchIcon, FilterIcon, ArrowUpDownIcon, EyeIcon, DownloadIcon } from '
 // --- Imports for Firebase and Authentication ---
 import { useAuth } from '../../../context/AuthContext';
 import { db } from '../../../lib/firebase/config';
-import { collection, query, where, onSnapshot, doc, updateDoc, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, orderBy, Timestamp, getDoc } from 'firebase/firestore';
 
 // --- Component Imports ---
 import OrderDetailsModal from '../components/orders/OrderDetailsModal';
@@ -43,7 +43,9 @@ interface TransactionData {
 
 // Update the component to accept transactions prop
 const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] }) => {
+  console.log("OrdersComponent rendered");
   const { user } = useAuth(); // Get the current authenticated vendor
+  console.log("Current user:", user);
 
   // --- State Management ---
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -53,50 +55,58 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
   const [sortBy, setSortBy] = useState('date-desc');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // --- Effect to Listen for Real-Time Order Updates ---
-  useEffect(() => {
+  const fetchVendorOrders = async () => {
+    console.log("fetchVendorOrders called, user:", user);
     if (user) {
       setIsLoading(true);
-      // Listen to vendor orders subcollection instead of querying all orders
-      const vendorOrdersRef = collection(db, 'users', user.uid, 'vendorOrders');
-      
-      // Create a query to get all vendor orders
-      const q = query(vendorOrdersRef, orderBy('createdAt', 'desc'));
+      console.log("Fetching orders for vendor ID:", user.uid);
+      // Listen to main orders collection where vendorId matches current vendor
+      const ordersRef = collection(db, 'orders');
+      const q = query(ordersRef, where('vendorId', '==', user.uid), orderBy('createdAt', 'desc'));
 
       // onSnapshot creates a real-time listener.
-      const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        console.log("Vendor orders snapshot size:", snapshot.size);
+        console.log("Query vendor ID:", user.uid);
         const fetchedOrders: Order[] = [];
         
-        // For each vendor order reference, fetch the actual order data
-        for (const doc of snapshot.docs) {
-          const orderData = doc.data();
-          try {
-            // Get the actual order document
-            const orderDocRef = doc(db, 'orders', orderData.orderId);
-            const orderDoc = await getDoc(orderDocRef);
-            
-            if (orderDoc.exists()) {
-              const order = { 
-                id: orderDoc.id, 
-                ...orderDoc.data(),
-                clientName: orderData.clientName || 'Customer',
-                clientEmail: orderData.clientEmail || 'customer@example.com'
-              } as Order;
-              fetchedOrders.push(order);
-            }
-          } catch (error) {
-            console.error("Error fetching order details:", error);
-          }
-        }
+        snapshot.forEach((doc) => {
+          const orderData: any = doc.data();
+          console.log("Order data:", orderData);
+          console.log("Order vendorId:", orderData.vendorId);
+          
+          const order = { 
+            id: doc.id, 
+            orderId: orderData.orderId,
+            customerName: orderData.clientName || 'Customer',
+            customerEmail: orderData.clientEmail || 'customer@example.com',
+            createdAt: orderData.createdAt,
+            total: (orderData.price || 0) * (orderData.quantity || 1),
+            status: orderData.status || 'pending',
+            productName: orderData.productName,
+            productImage: orderData.productImage,
+            quantity: orderData.quantity,
+            price: orderData.price,
+            selectedOptions: orderData.selectedOptions || {},
+            vendorName: orderData.vendorName || 'Vendor',
+            clientName: orderData.buyerEmail || 'Customer'
+          } as Order;
+          
+          fetchedOrders.push(order);
+        });
         
+        console.log("Fetched orders array:", fetchedOrders);
         setAllOrders(fetchedOrders);
+        setIsLoading(false);
+      }, (error) => {
+        console.error("Error in vendor orders listener:", error);
         setIsLoading(false);
       });
 
       // Cleanup the listener when the component unmounts
       return () => unsubscribe();
     }
-  }, [user]);
+  };
 
   // --- Client-Side Filtering and Sorting ---
   // useMemo is used to prevent re-calculating on every render
@@ -120,19 +130,42 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
     });
   }, [allOrders, searchTerm, statusFilter, sortBy]);
 
+  // --- Effect to Listen for Real-Time Order Updates ---
+  useEffect(() => {
+    console.log("Orders useEffect called, user:", user);
+    fetchVendorOrders();
+  }, [user]);
 
   // --- Handlers ---
 
   const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
     try {
+      console.log("handleUpdateStatus called - Order ID:", orderId, "New Status:", newStatus);
+      console.log("Updating order status - Order ID:", orderId, "New Status:", newStatus);
       const orderDocRef = doc(db, 'orders', orderId);
+      console.log("Order document reference:", orderDocRef);
+      
+      // Check if the new status is valid
+      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+      if (!validStatuses.includes(newStatus)) {
+        console.error("Invalid status:", newStatus);
+        alert("Invalid status selected.");
+        return;
+      }
+      
       await updateDoc(orderDocRef, { status: newStatus });
+      console.log("Order status updated successfully");
       // The real-time listener will automatically update the UI.
       // We just need to update the selectedOrder state for the modal.
       setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
     } catch (error) {
       console.error("Error updating order status:", error);
-      alert("Failed to update order status.");
+      if (error.code === 'permission-denied') {
+        console.error("Permission denied when updating order status");
+        alert("You don't have permission to update this order status.");
+      } else {
+        alert("Failed to update order status.");
+      }
     }
   };
   
@@ -191,16 +224,16 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
-            <ArrowUpDownIcon size={16} className="text-gray-400 ml-2" />
+            <ArrowUpDownIcon size={16} className="text-black ml-2" />
             <select
-              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border text-black border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="date-desc">Date (newest first)</option>
-              <option value="date-asc">Date (oldest first)</option>
-              <option value="total-desc">Total (highest first)</option>
-              <option value="total-asc">Total (lowest first)</option>
+              <option value="date-desc text-black">Date (newest first)</option>
+              <option value="date-asc text-black">Date (oldest first)</option>
+              <option value="total-desc text-black">Total (highest first)</option>
+              <option value="total-asc text-black">Total (lowest first)</option>
             </select>
           </div>
         </div>

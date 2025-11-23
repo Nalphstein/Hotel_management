@@ -110,9 +110,17 @@ service cloud.firestore {
       // set themselves as the vendor in the new product document.
       allow create: if request.auth != null && request.resource.data.vendorId == request.auth.uid;
       
-      // UPDATE, DELETE: Allow a user to modify or delete a product ONLY IF
+      // UPDATE: Allow a user to modify a product if they are the vendor OR
+      // if they are updating only the rating and reviews fields (for review submissions)
+      allow update: if request.auth != null && 
+                   (resource.data.vendorId == request.auth.uid ||
+                   (request.resource.data.keys().hasOnly(['rating', 'reviews']) &&
+                    request.resource.data.rating is number &&
+                    request.resource.data.reviews is number));
+      
+      // DELETE: Allow a user to delete a product ONLY IF
       // the product's existing vendorId matches their own user ID.
-      allow update, delete: if request.auth != null && resource.data.vendorId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.vendorId == request.auth.uid;
       
       // Reviews subcollection
       match /reviews/{reviewId} {

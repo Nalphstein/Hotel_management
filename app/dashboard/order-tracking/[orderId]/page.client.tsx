@@ -7,7 +7,7 @@ import { CheckCircleIcon, ClockIcon, TruckIcon, XCircleIcon } from 'lucide-react
 import { useEffect, useState } from 'react';
 import { useCheckout } from '../../../../context/CheckoutContext';
 import { db } from '../../../../lib/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 interface Order {
   id: string;
@@ -90,6 +90,24 @@ export default function OrderTrackingPage() {
     const loadOrderData = async () => {
       // First, try to get order from Firestore
       try {
+        // First try to find the order by orderId in the orders collection
+        const ordersRef = collection(db, 'orders');
+        const q = query(ordersRef, where('orderId', '==', orderId));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const orderDoc = querySnapshot.docs[0];
+          const orderData = { id: orderDoc.id, ...orderDoc.data() } as Order;
+          setOrder(orderData);
+          setLoading(false);
+          return;
+        }
+      } catch (firestoreError) {
+        console.warn("Could not fetch order from Firestore by orderId:", firestoreError);
+      }
+      
+      // If not found by orderId, try to get order by document ID
+      try {
         const orderRef = doc(db, 'orders', orderId);
         const orderSnap = await getDoc(orderRef);
         
@@ -100,7 +118,7 @@ export default function OrderTrackingPage() {
           return;
         }
       } catch (firestoreError) {
-        console.warn("Could not fetch order from Firestore:", firestoreError);
+        console.warn("Could not fetch order from Firestore by document ID:", firestoreError);
       }
       
       // If not found in Firestore, try to get order data from checkout context

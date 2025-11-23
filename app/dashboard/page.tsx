@@ -118,32 +118,13 @@ export default function DashboardPage() {
         
         setProducts(fetchedProducts);
         
-        // Use stored vendor names if available, otherwise fetch them
+        // Use stored vendor names from the product documents
         const vendorNamesMap: Record<string, string> = {};
         
-        // First, use all stored vendor names
+        // Extract vendor names from products that have them stored
         for (const product of fetchedProducts) {
           if (product.vendorId && product.vendorName) {
             vendorNamesMap[product.vendorId] = product.vendorName;
-          }
-        }
-        
-        // Then, fetch missing vendor names (for older products without stored vendorName)
-        const vendorIdsToFetch = fetchedProducts
-          .filter(p => p.vendorId && !p.vendorName)
-          .map(p => p.vendorId) as string[];
-        
-        // Remove duplicates
-        const uniqueVendorIds = [...new Set(vendorIdsToFetch)];
-        
-        for (const vendorId of uniqueVendorIds) {
-          try {
-            const vendorDoc = await getDoc(doc(db, 'users', vendorId));
-            if (vendorDoc.exists()) {
-              vendorNamesMap[vendorId] = vendorDoc.data().username || 'Unknown Vendor';
-            }
-          } catch (error) {
-            console.error(`Error fetching vendor ${vendorId}:`, error);
           }
         }
         
