@@ -4,6 +4,8 @@ import { useAuth } from '../../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { db } from '../../../lib/firebase/config';
+import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 // --- Import the Paystack clone modal component ---
 import PaystackCloneModal from '../../components/PaystackCloneModal';
@@ -16,11 +18,22 @@ async function createOrderInFirestore(user: any, item: any): Promise<string> {
         // Generate a unique order ID
         const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         
+        // Get user's display name
+        let clientName = 'Anonymous Customer';
+        if (user.username) {
+            clientName = user.username;
+        } else if (user.othername) {
+            clientName = user.othername;
+        } else if (user.email) {
+            clientName = user.email.split('@')[0];
+        }
+        
         // Create order object
         const orderData = {
             orderId: orderId,
             userId: user.uid,
-            userEmail: user.email,
+            clientName: clientName,
+            clientEmail: user.email,
             productId: item.productId || item.id,
             productName: item.name,
             productImage: item.image,
@@ -30,14 +43,49 @@ async function createOrderInFirestore(user: any, item: any): Promise<string> {
             quantity: item.quantity || 1,
             selectedOptions: item.selectedOptions || {},
             status: 'pending',
-            createdAt: new Date(),
-            updatedAt: new Date()
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
         };
+        
+        // Save order to Firestore
+        const ordersRef = collection(db, 'orders');
+        const orderDoc = await addDoc(ordersRef, orderData);
+        
+        // Also add order reference to user's subcollection
+        if (user.uid) {
+            try {
+                const userOrdersRef = collection(db, 'users', user.uid, 'orders');
+                await addDoc(userOrdersRef, {
+                    orderId: orderId,
+                    orderRef: doc(db, 'orders', orderDoc.id),
+                    createdAt: serverTimestamp()
+                });
+            } catch (userOrderError) {
+                console.warn("Could not add order to user's subcollection:", userOrderError);
+            }
+        }
+        
+        // If vendorId exists, also add order reference to vendor's subcollection
+        if (item.vendorId) {
+            try {
+                const vendorOrdersRef = collection(db, 'users', item.vendorId, 'vendorOrders');
+                await addDoc(vendorOrdersRef, {
+                    orderId: orderId,
+                    orderRef: doc(db, 'orders', orderDoc.id),
+                    clientId: user.uid,
+                    clientName: clientName,
+                    clientEmail: user.email,
+                    createdAt: serverTimestamp()
+                });
+            } catch (vendorOrderError) {
+                console.warn("Could not add order to vendor's subcollection:", vendorOrderError);
+            }
+        }
         
         // Store order in localStorage for demo purposes
         try {
             const existingOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
-            existingOrders.push(orderData);
+            existingOrders.push({...orderData, id: orderDoc.id});
             localStorage.setItem('userOrders', JSON.stringify(existingOrders));
             console.log("Order stored in localStorage with ID:", orderId);
         } catch (storageError) {

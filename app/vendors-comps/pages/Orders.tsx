@@ -16,13 +16,20 @@ interface Order {
   orderId: string; // Your custom readable ID
   customerName: string; // Store customer name directly for easier display
   customerEmail: string;
-  createdAt: Timestamp;
+  createdAt: any; // Changed from Timestamp to any to handle both Firestore Timestamp and Date
   total: number;
-  status: 'Pending' | 'Processing' | 'Shipped' | 'Completed' | 'Cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'; // Updated to match our order statuses
+  productName: string;
+  productImage: string;
+  quantity: number;
+  price: number;
+  selectedOptions: Record<string, string>;
+  vendorName: string;
+  clientName: string; // Added clientName
   // Add other fields as needed for the details modal
-  items: any[];
-  shippingAddress: any;
-  paymentMethod: string;
+  items?: any[];
+  shippingAddress?: any;
+  paymentMethod?: string;
 }
 
 // Add interface for TransactionData if it doesn't exist
@@ -50,16 +57,38 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
   useEffect(() => {
     if (user) {
       setIsLoading(true);
-      const ordersRef = collection(db, 'orders');
-      // Create a query to get all orders where the vendorId matches the current user's ID
-      const q = query(ordersRef, where('vendorId', '==', user.uid));
+      // Listen to vendor orders subcollection instead of querying all orders
+      const vendorOrdersRef = collection(db, 'users', user.uid, 'vendorOrders');
+      
+      // Create a query to get all vendor orders
+      const q = query(vendorOrdersRef, orderBy('createdAt', 'desc'));
 
       // onSnapshot creates a real-time listener.
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedOrders = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Order[];
+      const unsubscribe = onSnapshot(q, async (snapshot) => {
+        const fetchedOrders: Order[] = [];
+        
+        // For each vendor order reference, fetch the actual order data
+        for (const doc of snapshot.docs) {
+          const orderData = doc.data();
+          try {
+            // Get the actual order document
+            const orderDocRef = doc(db, 'orders', orderData.orderId);
+            const orderDoc = await getDoc(orderDocRef);
+            
+            if (orderDoc.exists()) {
+              const order = { 
+                id: orderDoc.id, 
+                ...orderDoc.data(),
+                clientName: orderData.clientName || 'Customer',
+                clientEmail: orderData.clientEmail || 'customer@example.com'
+              } as Order;
+              fetchedOrders.push(order);
+            }
+          } catch (error) {
+            console.error("Error fetching order details:", error);
+          }
+        }
+        
         setAllOrders(fetchedOrders);
         setIsLoading(false);
       });
@@ -108,18 +137,73 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
   };
   
   const statuses = ['All', 'Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
-  const getStatusColor = (status: string) => { /* ... unchanged ... */ };
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'shipped': return 'bg-indigo-100 text-indigo-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
+  };
+  
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    // Handle both Firestore Timestamp and Date objects
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString();
+  };
+  
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Orders</h1>
-        {/* ... Export button ... */}
+        <button className="bg-green-500 text-white px-3 py-2 rounded-md flex items-center">
+          <DownloadIcon size={16} className="mr-1" /> Export
+        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-        {/* ... Search and Filter UI (unchanged) ... */}
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center">
+            <SearchIcon size={16} className="text-gray-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Search orders..."
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center">
+            <FilterIcon size={16} className="text-gray-400 mr-2" />
+            <select
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              {statuses.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            <ArrowUpDownIcon size={16} className="text-gray-400 ml-2" />
+            <select
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="date-desc">Date (newest first)</option>
+              <option value="date-asc">Date (oldest first)</option>
+              <option value="total-desc">Total (highest first)</option>
+              <option value="total-asc">Total (lowest first)</option>
+            </select>
+          </div>
+        </div>
       </div>
       
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -148,7 +232,7 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
                         <p className="text-gray-500 text-xs">{order.customerEmail}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-gray-600">{order.createdAt.toDate().toLocaleDateString()}</td>
+                    <td className="px-4 py-4 text-gray-600">{formatDate(order.createdAt)}</td>
                     <td className="px-4 py-4 font-medium">{formatCurrency(order.total)}</td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>

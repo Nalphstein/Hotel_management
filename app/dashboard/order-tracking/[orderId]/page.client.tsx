@@ -6,6 +6,8 @@ import ProtectedRoute from '../../../components/ProtectedRoute';
 import { CheckCircleIcon, ClockIcon, TruckIcon, XCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useCheckout } from '../../../../context/CheckoutContext';
+import { db } from '../../../../lib/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface Order {
   id: string;
@@ -86,7 +88,22 @@ export default function OrderTrackingPage() {
     }
 
     const loadOrderData = async () => {
-      // First, try to get order data from checkout context
+      // First, try to get order from Firestore
+      try {
+        const orderRef = doc(db, 'orders', orderId);
+        const orderSnap = await getDoc(orderRef);
+        
+        if (orderSnap.exists()) {
+          const orderData = { id: orderSnap.id, ...orderSnap.data() } as Order;
+          setOrder(orderData);
+          setLoading(false);
+          return;
+        }
+      } catch (firestoreError) {
+        console.warn("Could not fetch order from Firestore:", firestoreError);
+      }
+      
+      // If not found in Firestore, try to get order data from checkout context
       if (item) {
         // Debug log to see what data we're receiving
         console.log("Order tracking page received item from checkout context:", item);

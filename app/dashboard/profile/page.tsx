@@ -135,7 +135,7 @@ export default function ProfilePage() {
 
     setLoading(true);
     
-    // Try to fetch orders from localStorage
+    // Try to fetch orders from localStorage first
     try {
       const storedOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
       // Filter orders for current user
@@ -143,8 +143,8 @@ export default function ProfilePage() {
       
       // Convert stored orders to the expected format
       const formattedOrders = userOrders.map((order: any) => ({
-        id: order.orderId,
-        orderId: order.orderId,
+        id: order.orderId || order.id,
+        orderId: order.orderId || order.id,
         productName: order.productName,
         productImage: order.productImage,
         price: order.price,
@@ -155,42 +155,61 @@ export default function ProfilePage() {
       }));
       
       setOrders(formattedOrders);
-      setLoading(false);
-      return;
     } catch (storageError) {
       console.warn("Could not read orders from localStorage:", storageError);
     }
     
-    // Fallback to Firestore if localStorage fails
-    const ordersRef = collection(db, 'orders');
-    const q = query(
-      ordersRef, 
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
+    // Also fetch orders from Firestore for real-time updates
+    const userOrdersRef = collection(db, 'users', user.uid, 'orders');
+    const q = query(userOrdersRef, orderBy('createdAt', 'desc'));
     
     // Set up real-time listener for orders
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedOrders = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          orderId: data.orderId,
-          productName: data.productName,
-          productImage: data.productImage,
-          price: data.price,
-          quantity: data.quantity,
-          vendorName: data.vendorName || 'Vendor',
-          status: data.status || 'pending',
-          createdAt: data.createdAt
-        } as Order;
-      });
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const fetchedOrders: Order[] = [];
+      
+      // For each order reference, fetch the actual order data
+      for (const docSnapshot of snapshot.docs) {
+        const orderRefData = docSnapshot.data();
+        try {
+          // Get the actual order document
+          const orderDocRef = doc(db, 'orders', orderRefData.orderId);
+          const orderDoc = await getDoc(orderDocRef);
+          
+          if (orderDoc.exists()) {
+            const orderData: any = orderDoc.data();
+            const order = {
+              id: orderDoc.id,
+              orderId: orderData.orderId,
+              productName: orderData.productName,
+              productImage: orderData.productImage,
+              price: orderData.price,
+              quantity: orderData.quantity,
+              vendorName: orderData.vendorName || 'Vendor',
+              status: orderData.status || 'pending',
+              createdAt: orderData.createdAt
+            } as Order;
+            fetchedOrders.push(order);
+          }
+        } catch (error) {
+          console.error("Error fetching order details:", error);
+        }
+      }
       
       setOrders(fetchedOrders);
       setLoading(false);
+      
+      // Update localStorage with latest orders
+      try {
+        localStorage.setItem('userOrders', JSON.stringify(fetchedOrders));
+      } catch (storageError) {
+        console.warn("Could not update orders in localStorage:", storageError);
+      }
     }, (error) => {
       console.warn('Could not fetch orders from Firestore (permissions error). This is expected in development.', error);
-      setLoading(false);
+      // If we have orders from localStorage, don't show loading state
+      if (orders.length > 0) {
+        setLoading(false);
+      }
     });
 
     // Clean up the listener when component unmounts

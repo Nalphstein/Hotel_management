@@ -1,0 +1,194 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    //============================================================
+    // Rules for the main 'users' collection where individual user/vendor profiles are stored.
+    match /users/{userId} {
+      // --- Helper Function ---
+      // This reusable function checks if the user making the request is the owner of the document.
+      // It simplifies and clarifies all the rules below.
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // --- READ Rules (Get vs. List Pattern) ---
+      // We explicitly separate getting a single document from listing a collection for security.
+
+      // GET: Allow a user to retrieve THEIR OWN document by its specific ID.
+      // This is essential for loading their profile page or dashboard header.
+      allow get: if isOwner();
+
+      // LIST: CRITICAL: Explicitly DENY querying the entire users collection.
+      // This prevents any user from downloading a list of all other users on the platform.
+      allow list: if false;
+
+      // --- WRITE Rules (Create, Update, Delete) ---
+      // CREATE (Signup): Allow a user to create their own document when they sign up.
+      // Includes strict data validation to ensure data integrity and security.
+      allow create: if isOwner() &&
+                       // The UID in the document must match the authenticated user's UID.
+                       request.resource.data.uid == request.auth.uid &&
+                       // Validate that required text fields are non-empty strings.
+                       request.resource.data.username is string && request.resource.data.username.size() > 0 &&
+                       request.resource.data.othername is string &&
+                       request.resource.data.email is string &&
+                       request.resource.data.phone is string &&
+                       // The userType must be one of the two allowed values.
+                       request.resource.data.userType in ['user', 'vendor'] &&
+                       // The createdAt field must be a timestamp sent by the client.
+                       request.resource.data.createdAt is timestamp &&
+                       // IMPORTANT: Prevent malicious extra fields (like 'isAdmin: true') from being added.
+                       // The document can ONLY contain these specific keys upon creation.
+                       request.resource.data.keys().hasOnly(['uid', 'username', 'othername', 'email', 'phone', 'userType', 'createdAt']);
+
+      // UPDATE (Editing Profile / Preferences): Allow a user to update their own document.
+      allow update: if isOwner() &&
+                       // Prevent a user from changing fields that should be immutable (cannot be changed).
+                       request.resource.data.uid == resource.data.uid &&
+                       request.resource.data.createdAt == resource.data.createdAt &&
+                       request.resource.data.email == resource.data.email;
+                       // Note: Further validation could be added here for updated fields (e.g., ensuring 'address' is a map).
+
+      // DELETE: Allow a user to delete their own account data from Firestore.
+      allow delete: if isOwner();
+
+      // --- Subcollection Rules ---
+      // These rules are nested inside the 'users' match block because they belong to a specific user.
+
+      // Notifications Subcollection: A user can read their own notifications.
+      match /notifications/{notificationId} {
+        allow get, list: if isOwner();
+        // Allow a user to update a notification, but ONLY to mark it as read.
+        allow update: if isOwner() &&
+                       request.resource.data.isRead == true &&
+                       resource.data.isRead == false &&
+                       request.resource.data.keys().hasOnly(['isRead']);
+        // Clients should not be able to create or delete their own notifications.
+        allow create, delete: if false;
+      }
+      
+      // Payment Methods Subcollection: Allow a user to fully manage their own saved payment methods.
+      match /paymentMethods/{methodId} {
+          allow read, write, delete: if isOwner();
+      }
+      
+      // Activity Feed Subcollection (for vendors): A vendor can read their own activity feed.
+      match /activities/{activityId} {
+        allow get, list: if isOwner();
+        // Writing to the feed should ONLY be done by the backend (Cloud Functions).
+        allow write: if false;
+      }
+      
+      // Orders subcollection - users can read their own orders
+      match /orders/{orderId} {
+        allow read: if isOwner();
+        allow create: if isOwner();
+        allow update, delete: if false;
+      }
+
+      // Vendor orders subcollection - vendors can read their own vendor orders
+      match /vendorOrders/{orderId} {
+        allow read: if isOwner();
+        allow create: if isOwner();
+        allow update: if isOwner() && 
+                      request.resource.data.keys().hasOnly(['status', 'updatedAt']) &&
+                      request.resource.data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        allow delete: if false;
+      }
+    }
+
+    //============================================================
+    // Products Collection Rules
+    //============================================================
+    // Rules for the top-level 'products' collection.
+    match /products/{productId} {
+      // READ: Allow any authenticated (signed-in) user to read products.
+      // This is required for the dashboard, search, and product detail pages to function.
+      allow get, list: if request.auth != null;
+
+      // CREATE: Allow an authenticated user to create a product, but only if they
+      // set themselves as the vendor in the new product document.
+      allow create: if request.auth != null && request.resource.data.vendorId == request.auth.uid;
+      
+      // UPDATE, DELETE: Allow a user to modify or delete a product ONLY IF
+      // the product's existing vendorId matches their own user ID.
+      allow update, delete: if request.auth != null && resource.data.vendorId == request.auth.uid;
+      
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        // READ: Allow anyone to read reviews
+        allow get, list: if true;
+        
+        // CREATE: Allow authenticated users to create reviews for products
+        allow create: if request.auth != null &&
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.rating is number &&
+                         request.resource.data.rating >= 1 &&
+                         request.resource.data.rating <= 5 &&
+                         request.resource.data.comment is string;
+        
+        // UPDATE: Allow users to update only their own reviews
+        allow update: if request.auth != null &&
+                         request.auth.uid == resource.data.userId;
+        
+        // DELETE: Allow users to delete only their own reviews
+        allow delete: if request.auth != null &&
+                         request.auth.uid == resource.data.userId;
+      }
+    }
+
+    //============================================================
+    // Orders Collection Rules
+    //============================================================
+    // Rules for the top-level 'orders' collection for tracking all transactions.
+    match /orders/{orderId} {
+      // READ: Allow a user to read an order document if they are either the buyer OR the vendor.
+      // This allows both customers and vendors to see their relevant order histories and stats.
+      allow get, list: if request.auth != null && 
+                       (request.auth.uid == resource.data.buyerId || request.auth.uid == resource.data.vendorId);
+      
+      // WRITE: Allow authenticated users to create orders, but with validation
+      allow create: if request.auth != null &&
+                       // Validate required fields
+                       request.resource.data.buyerId == request.auth.uid &&
+                       request.resource.data.vendorId is string &&
+                       request.resource.data.productName is string &&
+                       request.resource.data.price is number &&
+                       request.resource.data.quantity is number &&
+                       request.resource.data.status == 'pending' &&
+                       request.resource.data.createdAt is timestamp;
+      
+      // UPDATE: Only allow updates to status field by vendor
+      allow update: if request.auth != null && 
+                       request.auth.uid == resource.data.vendorId &&
+                       // Only allow status updates
+                       request.resource.data.keys().hasOnly(['status', 'updatedAt']) &&
+                       // Validate status values
+                       request.resource.data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+      
+      // DELETE: Deny all client-side deletes
+      allow delete: if false;
+    }
+
+    //============================================================
+    // FAQ Content Rules
+    //============================================================
+    // Rules for publicly accessible FAQ data for the help center.
+    match /faqs/{faqId} {
+      // READ: Allow anyone (even unauthenticated users) to read FAQs.
+      allow get, list: if true;
+
+      // WRITE: Deny all client-side writes. Content should be managed by admins
+      // via the Firebase Console or a secure backend.
+      allow write: if false;
+    }
+
+    match /faqCategories/{categoryId} {
+      // READ: Allow anyone to read the category list for the help page.
+      allow get, list: if true;
+
+      // WRITE: Deny client-side writes.
+      allow write: if false;
+    }
+  }
+}

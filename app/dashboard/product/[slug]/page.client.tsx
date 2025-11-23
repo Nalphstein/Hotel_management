@@ -435,7 +435,7 @@ export default function ProductDetailClient() {
 
               {/* Vendor name with blue tick */}
               {vendorName && (
-                <div className="flex items-center">
+                <div className="flex items-center bg-blue-50 p-3 rounded-lg">
                   <span className="text-sm text-gray-600">Sold by </span>
                   <span className="text-sm font-medium text-gray-900 ml-1">{vendorName}</span>
                   {/* Blue tick verification badge */}
