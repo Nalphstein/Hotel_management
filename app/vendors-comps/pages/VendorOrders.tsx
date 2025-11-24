@@ -43,13 +43,13 @@ export default function VendorOrders() {
       const unsubscribe = onSnapshot(q, (snapshot) => {
         console.log("Vendor orders snapshot:", snapshot.size, "documents");
         const fetchedOrders: Order[] = [];
-        
+
         snapshot.forEach((doc) => {
           const orderData: any = doc.data();
           console.log("Order data:", orderData);
-          
-          const order = { 
-            id: doc.id, 
+
+          const order = {
+            id: doc.id,
             orderId: orderData.orderId,
             productName: orderData.productName,
             productImage: orderData.productImage,
@@ -62,10 +62,10 @@ export default function VendorOrders() {
             status: orderData.status || 'pending',
             createdAt: orderData.createdAt
           } as Order;
-          
+
           fetchedOrders.push(order);
         });
-        
+
         console.log("Fetched orders:", fetchedOrders);
         setOrders(fetchedOrders);
         setLoading(false);
@@ -90,10 +90,10 @@ export default function VendorOrders() {
         status: newStatus,
         updatedAt: serverTimestamp()
       });
-      
+
       // Update local state
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
           order.id === orderId ? { ...order, status: newStatus } : order
         )
       );
@@ -156,129 +156,140 @@ export default function VendorOrders() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
+      <div className= "flex justify-center items-center h-64" >
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" > </div>
+        </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Order Management</h1>
-        <p className="text-gray-600">{orders.length} orders</p>
-      </div>
+    <div className= "space-y-6" >
+    <div className="flex justify-between items-center" >
+      <h1 className="text-2xl font-bold" > Order Management </h1>
+        < p className = "text-gray-600" > { orders.length } orders </p>
+          </div>
 
-      {orders.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500">You don't have any orders yet.</p>
+  {
+    orders.length === 0 ? (
+      <div className= "bg-white rounded-lg shadow p-8 text-center" >
+      <p className="text-gray-500" > You don't have any orders yet.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Order
+      <div className= "bg-white rounded-lg shadow overflow-hidden" >
+      <div className="overflow-x-auto" >
+        <table className="min-w-full divide-y divide-gray-200" >
+          <thead className="bg-gray-50" >
+            <tr>
+            <th scope="col" className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" >
+              Order
+              </th>
+              < th scope = "col" className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" >
+                Product
+                </th>
+                < th scope = "col" className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" >
+                  Customer
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  < th scope = "col" className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" >
                     Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">#{order.orderId}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <img className="h-10 w-10 rounded-md object-cover" src={order.productImage} alt={order.productName} />
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{order.productName}</div>
-                          <div className="text-sm text-gray-500">Qty: {order.quantity}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{order.buyerEmail}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(order.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatPrice(order.price * order.quantity)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`}>
-                        {getStatusIcon(order.status)}
-                        <span className="ml-1 capitalize">{order.status}</span>
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {order.status !== 'delivered' && order.status !== 'cancelled' && (
-                        <div className="flex space-x-2">
-                          {order.status === 'pending' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'processing')}
-                              disabled={updatingOrderId === order.id}
-                              className="bg-blue-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
-                            >
-                              {updatingOrderId === order.id ? 'Processing...' : 'Process'}
-                            </button>
+                    </th>
+                    < th scope = "col" className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" >
+                      Amount
+                      </th>
+                      < th scope = "col" className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" >
+                        Status
+                        </th>
+                        < th scope = "col" className = "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" >
+                          Actions
+                          </th>
+                          </tr>
+                          </thead>
+                          < tbody className = "bg-white divide-y divide-gray-200" >
+                          {
+                            orders.map((order) => (
+                              <tr key= { order.id } className = "hover:bg-gray-50" >
+                              <td className="px-6 py-4 whitespace-nowrap" >
+                            <div className="text-sm font-medium text-gray-900" >#{ order.orderId } </div>
+                            </td>
+                            < td className = "px-6 py-4 whitespace-nowrap" >
+                            <div className="flex items-center" >
+                            <img className="h-10 w-10 rounded-md object-cover" src = { order.productImage } alt = { order.productName } />
+                            <div className="ml-4" >
+                            <div className="text-sm font-medium text-gray-900" > { order.productName } </div>
+                            < div className = "text-sm text-gray-500" > Qty: { order.quantity } </div>
+                            </div>
+                            </div>
+                            </td>
+                            < td className = "px-6 py-4 whitespace-nowrap" >
+                            <div className="text-sm text-gray-900" > { order.buyerEmail } </div>
+                            </td>
+                            < td className = "px-6 py-4 whitespace-nowrap text-sm text-gray-500" >
+                            { formatDate(order.createdAt)
+                          }
+                            </td>
+                            < td className = "px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" >
+                              { formatPrice(order.price * order.quantity) }
+                              </td>
+                              < td className = "px-6 py-4 whitespace-nowrap" >
+                                <span className={ `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}` }>
+                                  { getStatusIcon(order.status) }
+                                  < span className = "ml-1 capitalize" > { order.status } </span>
+                                    </span>
+                                    </td>
+                                    < td className = "px-6 py-4 whitespace-nowrap text-sm font-medium" >
+                                    {
+                                      order.status !== 'delivered' && order.status !== 'cancelled' && (
+                                        <div className="flex space-x-2">
+                                        {
+                                          order.status === 'pending' && (
+                                            <button
+                              onClick={ () => updateOrderStatus(order.id, 'processing') }
+    disabled = { updatingOrderId === order.id
+  }
+  className = "bg-blue-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
+    >
+    { updatingOrderId === order.id ? 'Processing...' : 'Process'
+}
+</button>
                           )}
-                          {order.status === 'processing' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'shipped')}
-                              disabled={updatingOrderId === order.id}
-                              className="bg-indigo-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
-                            >
-                              {updatingOrderId === order.id ? 'Shipping...' : 'Ship'}
-                            </button>
+{
+  order.status === 'processing' && (
+    <button
+                              onClick={ () => updateOrderStatus(order.id, 'shipped') }
+  disabled = { updatingOrderId === order.id
+}
+className = "bg-indigo-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
+  >
+  { updatingOrderId === order.id ? 'Shipping...' : 'Ship'}
+</button>
                           )}
-                          {order.status === 'shipped' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'delivered')}
-                              disabled={updatingOrderId === order.id}
-                              className="bg-green-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
-                            >
-                              {updatingOrderId === order.id ? 'Delivering...' : 'Deliver'}
-                            </button>
+{
+  order.status === 'shipped' && (
+    <button
+                              onClick={ () => updateOrderStatus(order.id, 'delivered') }
+  disabled = { updatingOrderId === order.id
+}
+className = "bg-green-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
+  >
+  { updatingOrderId === order.id ? 'Delivering...' : 'Deliver'}
+</button>
                           )}
-                        </div>
+<button
+                            onClick={ () => updateOrderStatus(order.id, 'cancelled') }
+disabled = { updatingOrderId === order.id}
+className = "text-red-600 hover:text-red-900 text-xs disabled:opacity-50"
+  >
+  { updatingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
+</button>
+  </div>
                       )}
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                        disabled={updatingOrderId === order.id}
-                        className="text-red-600 hover:text-red-900 ml-2 text-xs disabled:opacity-50"
-                      >
-                        {updatingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
-                      </button>
-                    </td>
-                  </tr>
+</td>
+  </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+</tbody>
+  </table>
+  </div>
+  </div>
       )}
-    </div>
+</div>
   );
 }

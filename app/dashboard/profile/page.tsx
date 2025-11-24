@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { CheckCircleIcon, ClockIcon, TruckIcon, XCircleIcon } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { db } from '../../../lib/firebase/config';
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 
 interface Order {
   id: string;
@@ -134,13 +134,13 @@ export default function ProfilePage() {
     if (!user) return;
 
     setLoading(true);
-    
+
     // Try to fetch orders from localStorage first
     try {
       const storedOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
       // Filter orders for current user
       const userOrders = storedOrders.filter((order: any) => order.buyerId === user.uid);
-      
+
       // Convert stored orders to the expected format
       const formattedOrders = userOrders.map((order: any) => ({
         id: order.orderId || order.id,
@@ -153,29 +153,43 @@ export default function ProfilePage() {
         status: order.status || 'pending',
         createdAt: order.createdAt
       }));
-      
+
       setOrders(formattedOrders);
     } catch (storageError) {
       console.warn("Could not read orders from localStorage:", storageError);
     }
-    
+
     // Also fetch orders from Firestore for real-time updates
     const userOrdersRef = collection(db, 'users', user.uid, 'orders');
     const q = query(userOrdersRef, orderBy('createdAt', 'desc'));
-    
+
     // Set up real-time listener for orders
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const fetchedOrders: Order[] = [];
-      
+
       // For each order reference, fetch the actual order data
       for (const docSnapshot of snapshot.docs) {
         const orderRefData = docSnapshot.data();
         try {
-          // Get the actual order document
-          const orderDocRef = doc(db, 'orders', orderRefData.orderDocId || orderRefData.orderId);
-          const orderDoc = await getDoc(orderDocRef);
-          
-          if (orderDoc.exists()) {
+          // The orderRef field is a DocumentReference, we can use it directly
+          // Or we can construct the path from the stored orderId
+          let orderDoc;
+
+          if (orderRefData.orderRef) {
+            // Use the stored document reference
+            orderDoc = await getDoc(orderRefData.orderRef);
+          } else if (orderRefData.orderId) {
+            // Fallback: query the orders collection by orderId field
+            const ordersRef = collection(db, 'orders');
+            const orderQuery = query(ordersRef, where('orderId', '==', orderRefData.orderId));
+            const orderSnapshot = await getDocs(orderQuery);
+
+            if (!orderSnapshot.empty) {
+              orderDoc = orderSnapshot.docs[0];
+            }
+          }
+
+          if (orderDoc && orderDoc.exists()) {
             const orderData: any = orderDoc.data();
             const order = {
               id: orderDoc.id,
@@ -194,10 +208,10 @@ export default function ProfilePage() {
           console.error("Error fetching order details:", error);
         }
       }
-      
+
       setOrders(fetchedOrders);
       setLoading(false);
-      
+
       // Update localStorage with latest orders
       try {
         localStorage.setItem('userOrders', JSON.stringify(fetchedOrders));
@@ -223,127 +237,134 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      <div className= "min-h-screen flex items-center justify-center bg-gray-50" >
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" > </div>
         </div>
-      </ProtectedRoute>
+        </ProtectedRoute>
     );
   }
 
   // Get full name for display
   const getFullDisplayName = () => {
     if (profileLoading) return 'Loading...';
-    
+
     if (userProfile) {
       const fullName = `${userProfile.othername} ${userProfile.username}`.trim();
       return fullName || user.displayName || 'User';
     }
-    
+
     return user.displayName || 'User';
   };
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-            <p className="text-gray-600">View your order history and account details</p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Profile Info */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold mb-4">Account Information</h2>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Name</p>
-                    <p className="font-medium">{getFullDisplayName()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium">{userProfile?.email || user.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Member Since</p>
-                    <p className="font-medium">
-                      {userProfile?.createdAt 
-                        ? formatDate(userProfile.createdAt)
-                        : user.metadata?.creationTime 
-                          ? new Date(user.metadata.creationTime).toLocaleDateString() 
-                          : 'Unknown Date'}
-                    </p>
-                  </div>
-                </div>
-              </div>
+    <div className= "min-h-screen bg-gray-50 py-8" >
+    <div className="max-w-6xl mx-auto px-4" >
+      <div className="mb-8" >
+        <h1 className="text-3xl font-bold text-gray-900" > My Profile </h1>
+          < p className = "text-gray-600" > View your order history and account details </p>
             </div>
 
-            {/* Order History */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow">
-                <div className="p-6 border-b">
-                  <h2 className="text-xl font-semibold">Order History</h2>
-                  <p className="text-gray-600">Track your recent orders</p>
-                </div>
-                
-                {loading ? (
-                  <div className="p-8 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                    <p className="mt-2 text-gray-500">Loading your orders...</p>
-                  </div>
-                ) : orders.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-gray-500">You haven't placed any orders yet.</p>
-                    <Link href="/dashboard">
-                      <span className="mt-4 inline-block bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-                        Start Shopping
-                      </span>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {orders.map((order) => (
-                      <div key={order.id} className="p-6 hover:bg-gray-50">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-center space-x-4">
-                            <img 
-                              src={order.productImage} 
-                              alt={order.productName} 
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                            <div>
-                              <p className="font-medium">{order.productName}</p>
-                              <p className="text-sm text-gray-500">Order #{order.orderId}</p>
-                              <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
-                            </div>
+            < div className = "grid grid-cols-1 lg:grid-cols-3 gap-8" >
+              {/* Profile Info */ }
+              < div className = "lg:col-span-1" >
+                <div className="bg-white rounded-lg shadow p-6" >
+                  <h2 className="text-xl font-semibold mb-4" > Account Information </h2>
+                    < div className = "space-y-4" >
+                      <div>
+                      <p className="text-sm text-gray-500" > Name </p>
+                        < p className = "font-medium" > { getFullDisplayName() } </p>
                           </div>
-                          
-                          <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                              <p className="font-medium">{formatPrice(order.price)}</p>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`}>
-                                {getStatusIcon(order.status)}
-                                <span className="ml-1 capitalize">{order.status}</span>
-                              </span>
-                            </div>
-                            
-                            <Link href={`/dashboard/order-tracking/${order.orderId}`}>
-                              <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                Track Order
-                              </span>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+                          < div >
+                          <p className="text-sm text-gray-500" > Email </p>
+                            < p className = "font-medium" > { userProfile?.email || user.email
+} </p>
+  </div>
+  < div >
+  <p className="text-sm text-gray-500" > Member Since </p>
+    < p className = "font-medium" >
+    {
+      userProfile?.createdAt
+      ? formatDate(userProfile.createdAt)
+                        : user.metadata?.creationTime
+        ? new Date(user.metadata.creationTime).toLocaleDateString()
+        : 'Unknown Date'
+    }
+      </p>
       </div>
-    </ProtectedRoute>
+      </div>
+      </div>
+      </div>
+
+{/* Order History */ }
+<div className="lg:col-span-2" >
+  <div className="bg-white rounded-lg shadow" >
+    <div className="p-6 border-b" >
+      <h2 className="text-xl font-semibold" > Order History </h2>
+        < p className = "text-gray-600" > Track your recent orders </p>
+          </div>
+
+{
+  loading ? (
+    <div className= "p-8 text-center" >
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto" > </div>
+      < p className = "mt-2 text-gray-500" > Loading your orders...</p>
+        </div>
+                ) : orders.length === 0 ? (
+    <div className= "p-8 text-center" >
+    <p className="text-gray-500" > You haven't placed any orders yet.</p>
+      < Link href = "/dashboard" >
+        <span className="mt-4 inline-block bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700" >
+          Start Shopping
+            </span>
+            </Link>
+            </div>
+                ) : (
+    <div className= "divide-y" >
+    {
+      orders.map((order) => (
+        <div key= { order.id } className = "p-6 hover:bg-gray-50" >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" >
+      <div className="flex items-center space-x-4" >
+      <img 
+                              src={ order.productImage } 
+                              alt = { order.productName } 
+                              className = "w-16 h-16 object-cover rounded-lg"
+        />
+        <div>
+        <p className="font-medium" > { order.productName } </p>
+      < p className = "text-sm text-gray-500" > Order #{ order.orderId } </p>
+      < p className = "text-sm text-gray-500" > { formatDate(order.createdAt)
+    } </p>
+    </div>
+    </div>
+
+    < div className = "flex items-center space-x-4" >
+      <div className="text-right" >
+        <p className="font-medium" > { formatPrice(order.price) } </p>
+          < span className = {`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`
+}>
+  { getStatusIcon(order.status) }
+  < span className = "ml-1 capitalize" > { order.status } </span>
+    </span>
+    </div>
+
+    < Link href = {`/dashboard/order-tracking/${order.orderId}`}>
+      <span className="text-blue-600 hover:text-blue-800 text-sm font-medium" >
+        Track Order
+          </span>
+          </Link>
+          </div>
+          </div>
+          </div>
+                    ))}
+</div>
+                )}
+</div>
+  </div>
+  </div>
+  </div>
+  </div>
+  </ProtectedRoute>
   );
 }
