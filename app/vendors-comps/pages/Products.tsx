@@ -24,6 +24,8 @@ interface Product {
   vendorId: string; // Crucial for security and queries
   vendorName?: string; // Add vendorName field
   features?: string[]; // Add features field
+  rating?: number; // Average rating from reviews
+  reviews?: number; // Total number of reviews
 }
 
 // --- Your Predefined Static List of Categories ---
