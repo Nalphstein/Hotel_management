@@ -544,7 +544,7 @@ className = "bg-gray-800 text-white px-6 py-2 sm:px-8 sm:py-3 rounded-lg hover:b
                     < textarea
   id = "review"
   rows = { 4}
-  className = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  className = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
   placeholder = "Share your experience with this product..."
   value = { userReview }
   onChange = {(e) => setUserReview(e.target.value)

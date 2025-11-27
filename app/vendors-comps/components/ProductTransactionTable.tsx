@@ -74,10 +74,14 @@ const ProductTransactionTable = ({ transactions }: ProductTransactionTableProps)
       // onSnapshot creates a real-time listener.
       // The component will automatically re-render whenever new data matching the query arrives.
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedTransactions = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Transaction[];
+        const fetchedTransactions = snapshot.docs.map(doc => {
+          const orderData = doc.data();
+          return {
+            id: doc.id,
+            ...orderData,
+            amount: (orderData.price || 0) * (orderData.quantity || 1)
+          };
+        }) as Transaction[];
         if (useInternalData) {
           setInternalTransactions(fetchedTransactions);
         }
@@ -107,7 +111,7 @@ const ProductTransactionTable = ({ transactions }: ProductTransactionTableProps)
   }
 
   // Helper function to format currency
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
   
   // Helper function to get the Tailwind CSS classes for a status badge
   const getStatusColor = (status: string) => {

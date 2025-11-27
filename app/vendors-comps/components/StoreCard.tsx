@@ -32,7 +32,7 @@ const StoreCard = ({
           </button>
         </div>
         <div className="mt-4">
-          <h2 className="text-2xl font-bold">{amount}</h2>
+          <h2 className="text-2xl font-bold text-black">{amount}</h2>
           <div className="flex items-center mt-1">
             <div className={`flex items-center ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
               {trend === 'up' ? <TrendingUpIcon size={14} /> : <TrendingDownIcon size={14} />}

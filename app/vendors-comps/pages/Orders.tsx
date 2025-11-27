@@ -169,7 +169,7 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
     }
   };
   
-  const statuses = ['All', 'Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
+  const statuses = ['All', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -208,7 +208,7 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
             <input
               type="text"
               placeholder="Search orders..."
-              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -216,7 +216,7 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
           <div className="flex items-center">
             <FilterIcon size={16} className="text-gray-400 mr-2" />
             <select
-              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-300 rounded-md text-black px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -230,10 +230,10 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="date-desc text-black">Date (newest first)</option>
-              <option value="date-asc text-black">Date (oldest first)</option>
-              <option value="total-desc text-black">Total (highest first)</option>
-              <option value="total-asc text-black">Total (lowest first)</option>
+              <option value="date-desc">Date (newest first)</option>
+              <option value="date-asc">Date (oldest first)</option>
+              <option value="total-desc">Total (highest first)</option>
+              <option value="total-asc">Total (lowest first)</option>
             </select>
           </div>
         </div>
@@ -258,7 +258,7 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
               ) : sortedOrders.length > 0 ? (
                 sortedOrders.map(order => (
                   <tr key={order.id} className="border-b border-gray-100 text-sm hover:bg-gray-50">
-                    <td className="px-4 py-4 font-medium">{order.orderId}</td>
+                    <td className="px-4 py-4 font-medium text-black">{order.orderId}</td>
                     <td className="px-4 py-4">
                       <div>
                         <p className="font-medium text-gray-800">{order.customerName}</p>
@@ -266,10 +266,10 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
                       </div>
                     </td>
                     <td className="px-4 py-4 text-gray-600">{formatDate(order.createdAt)}</td>
-                    <td className="px-4 py-4 font-medium">{formatCurrency(order.total)}</td>
+                    <td className="px-4 py-4 font-medium text-black">{formatCurrency(order.total)}</td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status}
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
                     </td>
                     <td className="px-4 py-4">

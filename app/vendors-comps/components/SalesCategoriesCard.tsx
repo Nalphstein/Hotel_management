@@ -73,11 +73,17 @@ const SalesCategoriesCard = ({ categoryData }: SalesCategoriesCardProps) => {
         const q = query(
           ordersRef,
           where('vendorId', '==', user.uid),
-          where('status', '==', 'completed'),
+          where('status', '==', 'delivered'),
           where('createdAt', '>=', Timestamp.fromDate(startDate))
         );
         const querySnapshot = await getDocs(q);
-        const orders = querySnapshot.docs.map(doc => doc.data());
+        const orders = querySnapshot.docs.map(doc => {
+          const orderData = doc.data();
+          return {
+            ...orderData,
+            amount: (orderData.price || 0) * (orderData.quantity || 1)
+          };
+        }) as any[];
 
         // 3. Aggregate the raw order data by category
         const salesByCategory: { [key: string]: number } = {};
@@ -110,7 +116,7 @@ const SalesCategoriesCard = ({ categoryData }: SalesCategoriesCardProps) => {
 
   // Calculate the total sales to display in the center of the chart
   const total = localCategoryData.reduce((sum, item) => sum + item.value, 0);
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
 
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden h-full">

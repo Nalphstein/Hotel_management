@@ -246,12 +246,12 @@ export default function OrderTrackingPage() {
             <div className="p-6 border-b">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold">Order #{order.orderId}</h2>
+                  <h2 className="text-xl font-semibold text-black">Order #{order.orderId}</h2>
                   <p className="text-gray-600">Placed on {formatDate(order.createdAt)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">{formatPrice(order.price)}</p>
-                  <span className="capitalize">{order.status}</span>
+                  <p className="text-2xl font-bold text-black">{formatPrice(order.price)}</p>
+                  <span className="capitalize text-black">{order.status}</span>
                 </div>
               </div>
             </div>
@@ -265,7 +265,7 @@ export default function OrderTrackingPage() {
                   className="w-20 h-20 object-cover rounded-lg"
                 />
                 <div className="flex-grow">
-                  <h3 className="font-medium">{order.productName}</h3>
+                  <h3 className="font-medium text-black">{order.productName}</h3>
                   <p className="text-gray-600">Sold by {order.vendorName || 'Vendor'}</p>
                   <div className="mt-2">
                     {Object.entries(order.selectedOptions).map(([key, value]) => (
@@ -276,15 +276,15 @@ export default function OrderTrackingPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">Qty: {order.quantity}</p>
-                  <p className="font-medium">{formatPrice(order.price)}</p>
+                  <p className="font-medium text-black">Qty: {order.quantity}</p>
+                  <p className="font-medium text-black">{formatPrice(order.price)}</p>
                 </div>
               </div>
             </div>
 
             {/* Order Status Tracker */}
             <div className="p-6">
-              <h3 className="text-lg font-semibold mb-6">Order Status</h3>
+              <h3 className="text-lg font-semibold mb-6 text-gray-700">Order Status</h3>
               
               <div className="relative">
                 {/* Progress line */}
@@ -338,10 +338,10 @@ export default function OrderTrackingPage() {
             <div className="p-6 bg-gray-50 border-t">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div>
-                  <h4 className="font-medium">Need help with your order?</h4>
+                  <h4 className="font-medium text-black">Need help with your order?</h4>
                   <p className="text-sm text-gray-600">Contact our support team for assistance</p>
                 </div>
-                <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-black">
                   Contact Support
                 </button>
               </div>

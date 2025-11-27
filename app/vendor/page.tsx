@@ -56,14 +56,18 @@ export default function VendorDashboard() {
         const q = query(
           ordersRef, 
           where('vendorId', '==', user.uid), 
-          where('status', '==', 'completed')
+          where('status', '==', 'delivered')
         );
         const querySnapshot = await getDocs(q);
 
-        const orders = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as TransactionData[];
+        const orders = querySnapshot.docs.map(doc => {
+          const orderData = doc.data();
+          return {
+            id: doc.id,
+            ...orderData,
+            amount: (orderData.price || 0) * (orderData.quantity || 1)
+          };
+        }) as TransactionData[];
         
         // --- Perform Calculations ---
         const totalSales = orders.reduce((sum, order) => sum + order.amount, 0);
@@ -99,7 +103,7 @@ export default function VendorDashboard() {
 
   // --- Helper Function ---
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
   };
 
   return (

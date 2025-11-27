@@ -33,12 +33,18 @@ const ProfileStats = () => {
           const q = query(
             ordersRef,
             where('vendorId', '==', user.uid),
-            where('status', '==', 'completed')
+            where('status', '==', 'delivered')
           );
           const querySnapshot = await getDocs(q);
 
           // Get the raw data from the documents
-          const orders = querySnapshot.docs.map(doc => doc.data());
+          const orders = querySnapshot.docs.map(doc => {
+            const orderData = doc.data();
+            return {
+              ...orderData,
+              amount: (orderData.price || 0) * (orderData.quantity || 1)
+            };
+          }) as any[];
           
           // --- Perform Calculations ---
           
@@ -68,7 +74,7 @@ const ProfileStats = () => {
 
   // Helper to format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
   };
 
   // --- Render a loading state while fetching ---

@@ -166,7 +166,7 @@ export default function OrderSuccessClient() {
                     
                     <div className="bg-gray-50 p-4 rounded-lg text-center mb-6">
                         <p className="text-sm text-gray-500">Order Number</p>
-                        <p className="font-mono font-semibold text-lg">{orderId}</p>
+                        <p className="font-mono font-semibold text-lg text-black">{orderId}</p>
                     </div>
 
                     <div className="border rounded-lg overflow-hidden mb-6">
@@ -200,16 +200,16 @@ export default function OrderSuccessClient() {
                     {order && (
                         <div className="bg-gray-50 p-4 rounded-lg space-y-2 mb-6">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Vendor</span>
-                                <span className="font-medium">{order.vendorName || 'Vendor'}</span>
+                                <span className="text-gray-600 text-black">Vendor</span>
+                                <span className="font-medium text-black">{order.vendorName || 'Vendor'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Order Date</span>
-                                <span className="font-medium">{formatDate(order.createdAt)}</span>
+                                <span className="font-medium text-black">{formatDate(order.createdAt)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Status</span>
-                                <span className="font-medium capitalize">{order.status}</span>
+                                <span className="font-medium capitalize text-black">{order.status}</span>
                             </div>
                         </div>
                     )}
@@ -225,7 +225,7 @@ export default function OrderSuccessClient() {
                                 Continue Shopping
                             </span>
                         </Link>
-                        <Link href={`/order-tracking/${orderId}`}>
+                        <Link href={`/dashboard/order-tracking/${orderId}`}>
                             <span className="w-full block bg-white text-gray-800 py-3 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50 text-center">
                                 Track Order
                             </span>

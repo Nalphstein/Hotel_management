@@ -269,20 +269,20 @@ export default function ProfilePage() {
               {/* Profile Info */ }
               < div className = "lg:col-span-1" >
                 <div className="bg-white rounded-lg shadow p-6" >
-                  <h2 className="text-xl font-semibold mb-4" > Account Information </h2>
+                  <h2 className="text-xl font-semibold mb-4 text-black" > Account Information </h2>
                     < div className = "space-y-4" >
                       <div>
                       <p className="text-sm text-gray-500" > Name </p>
-                        < p className = "font-medium" > { getFullDisplayName() } </p>
+                        < p className = "font-medium text-black" > { getFullDisplayName() } </p>
                           </div>
                           < div >
                           <p className="text-sm text-gray-500" > Email </p>
-                            < p className = "font-medium" > { userProfile?.email || user.email
+                            < p className = "font-medium text-black" > { userProfile?.email || user.email
 } </p>
   </div>
   < div >
   <p className="text-sm text-gray-500" > Member Since </p>
-    < p className = "font-medium" >
+    < p className = "font-medium text-black" >
     {
       userProfile?.createdAt
       ? formatDate(userProfile.createdAt)
@@ -300,7 +300,7 @@ export default function ProfilePage() {
 <div className="lg:col-span-2" >
   <div className="bg-white rounded-lg shadow" >
     <div className="p-6 border-b" >
-      <h2 className="text-xl font-semibold" > Order History </h2>
+      <h2 className="text-xl font-semibold text-black" > Order History </h2>
         < p className = "text-gray-600" > Track your recent orders </p>
           </div>
 
@@ -332,7 +332,7 @@ export default function ProfilePage() {
                               className = "w-16 h-16 object-cover rounded-lg"
         />
         <div>
-        <p className="font-medium" > { order.productName } </p>
+        <p className="font-medium text-black" > { order.productName } </p>
       < p className = "text-sm text-gray-500" > Order #{ order.orderId } </p>
       < p className = "text-sm text-gray-500" > { formatDate(order.createdAt)
     } </p>
@@ -341,7 +341,7 @@ export default function ProfilePage() {
 
     < div className = "flex items-center space-x-4" >
       <div className="text-right" >
-        <p className="font-medium" > { formatPrice(order.price) } </p>
+        <p className="font-medium text-black" > { formatPrice(order.price) } </p>
           < span className = {`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`
 }>
   { getStatusIcon(order.status) }
