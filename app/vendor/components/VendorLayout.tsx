@@ -38,13 +38,16 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
       try {
         const parsedData = JSON.parse(userData);
         const fullName = `${parsedData.username || ''} ${parsedData.othername || ''}`;
-        // Get first two letters of the full name
-        const initials = fullName.trim() ? fullName.substring(0, 2).toUpperCase() : 'JD';
+        // Get first two letters of the full name, but handle empty names properly
+        const initials = fullName.trim() ? fullName.trim().substring(0, 2).toUpperCase() : 
+                       (parsedData.email ? parsedData.email.substring(0, 2).toUpperCase() : 'JD');
         setVendorInitials(initials);
         
         // Set profile image if it exists in user data
         if (parsedData.profileImage && parsedData.profileImage !== 'null' && parsedData.profileImage !== 'undefined') {
           setVendorProfileImage(parsedData.profileImage);
+        } else {
+          setVendorProfileImage(null);
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
@@ -68,9 +71,10 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
       const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          // Get vendor initials from username and othername
+          // Get vendor initials from username and othername, with fallback to email
           const fullName = `${userData.username || ''} ${userData.othername || ''}`;
-          const initials = fullName.trim() ? fullName.substring(0, 2).toUpperCase() : 'JD';
+          const initials = fullName.trim() ? fullName.trim().substring(0, 2).toUpperCase() : 
+                         (userData.email ? userData.email.substring(0, 2).toUpperCase() : 'JD');
           setVendorInitials(initials);
           
           // Update profile image if it exists in Firestore
@@ -79,6 +83,10 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
           } else {
             setVendorProfileImage(null);
           }
+        } else {
+          // If user document doesn't exist, set default values
+          setVendorInitials('JD');
+          setVendorProfileImage(null);
         }
       }, (error) => {
         console.error('Error listening to vendor data from Firestore:', error);
@@ -190,15 +198,14 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                   className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-medium"
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                 >
-                  {vendorProfileImage && vendorProfileImage !== 'null' ? (
+                  {vendorProfileImage && vendorProfileImage !== 'null' && vendorProfileImage !== 'undefined' ? (
                     <img 
                       src={vendorProfileImage} 
                       alt="Profile" 
                       className="h-8 w-8 rounded-full object-cover"
                       onError={(e) => {
                         // Fallback to initials if image fails to load
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement!.innerHTML = vendorInitials;
+                        setVendorProfileImage(null);
                       }}
                     />
                   ) : (
@@ -214,13 +221,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                     >
                       Profile
                     </Link>
-                    {/* <Link 
-                      href="/vendor/settings" 
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={handleNavigation}
-                    >
-                      Settings
-                    </Link> */}
+
                     <Link 
                       href="/" 
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -260,27 +261,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                 >
                   Orders
                 </Link>
-                {/* <Link 
-                  href="/vendor/profile" 
-                  className={`block px-4 py-2 rounded-md text-base font-medium ${pathname === '/vendor/profile' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                  onClick={handleNavigation}
-                >
-                  Profile
-                </Link> */}
-                {/* <Link 
-                  href="/vendor/settings" 
-                  className={`block px-4 py-2 rounded-md text-base font-medium ${pathname === '/vendor/settings' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                  onClick={handleNavigation}
-                >
-                  Settings
-                </Link> */}
-                {/* <Link 
-                  href="/" 
-                  className="block px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-                  onClick={handleNavigation}
-                >
-                  Sign out
-                </Link> */}
+
               </div>
             </div>
           )}
