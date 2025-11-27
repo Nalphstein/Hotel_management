@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 
+// Firebase imports
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../lib/firebase/config';
+
 // Define the props for the layout component
 interface VendorLayoutProps {
   children: React.ReactNode;
@@ -25,7 +29,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
     return pathname?.startsWith(path);
   };
 
-  // Get vendor initials and profile image from user data stored in localStorage
+  // Get vendor initials from user data stored in localStorage
   useEffect(() => {
     const userData = localStorage.getItem('userData');
     if (userData) {
@@ -37,7 +41,7 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
         setVendorInitials(initials);
         
         // Set profile image if it exists in user data
-        if (parsedData.profileImage) {
+        if (parsedData.profileImage && parsedData.profileImage !== 'null' && parsedData.profileImage !== 'undefined') {
           setVendorProfileImage(parsedData.profileImage);
         }
       } catch (error) {
@@ -46,10 +50,56 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
     }
   }, []);
 
+  // Fetch vendor data from Firestore to ensure we have the latest profile image
+  useEffect(() => {
+    // We need to get the user ID from localStorage or context
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      try {
+        const parsedData = JSON.parse(userData);
+        const userId = parsedData.uid;
+        
+        if (userId) {
+          // Set up real-time listener for user data changes
+          const userDocRef = doc(db, 'users', userId);
+          const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const userData = docSnap.data();
+              // Get vendor initials from username and othername
+              const fullName = `${userData.username || ''} ${userData.othername || ''}`;
+              const initials = fullName.trim() ? fullName.substring(0, 2).toUpperCase() : 'JD';
+              setVendorInitials(initials);
+              
+              // Update profile image if it exists in Firestore
+              if (userData.profileImage && userData.profileImage !== 'null' && userData.profileImage !== 'undefined') {
+                setVendorProfileImage(userData.profileImage);
+              } else {
+                setVendorProfileImage(null);
+              }
+            }
+          }, (error) => {
+            console.error('Error listening to vendor data from Firestore:', error);
+          });
+          
+          // Clean up the listener when component unmounts
+          return () => unsubscribe();
+        }
+      } catch (error) {
+        console.error('Error setting up vendor data listener from Firestore:', error);
+      }
+    }
+  }, []);
+
   // Listen for profile image updates
   useEffect(() => {
     const handleProfileImageUpdate = (event: CustomEvent) => {
-      setVendorProfileImage(event.detail.profileImage);
+      const profileImage = event.detail.profileImage;
+      // Only update if profileImage is not null/undefined/empty
+      if (profileImage && profileImage !== 'null' && profileImage !== 'undefined') {
+        setVendorProfileImage(profileImage);
+      } else {
+        setVendorProfileImage(null);
+      }
     };
 
     // Add event listener for profile image updates
@@ -141,11 +191,16 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
                   className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-medium"
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                 >
-                  {vendorProfileImage ? (
+                  {vendorProfileImage && vendorProfileImage !== 'null' ? (
                     <img 
                       src={vendorProfileImage} 
                       alt="Profile" 
                       className="h-8 w-8 rounded-full object-cover"
+                      onError={(e) => {
+                        // Fallback to initials if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement!.innerHTML = vendorInitials;
+                      }}
                     />
                   ) : (
                     vendorInitials

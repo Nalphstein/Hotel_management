@@ -203,7 +203,7 @@ const ProfileComponent = () => {
         
         // Dispatch custom event to notify VendorLayout of profile image update
         const event = new CustomEvent('profileImageUpdated', { 
-          detail: { profileImage: formData.profileImage } 
+          detail: { profileImage: formData.profileImage || null } 
         });
         window.dispatchEvent(event);
       }
