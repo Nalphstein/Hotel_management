@@ -4,6 +4,7 @@ import { SearchIcon, BellIcon, UserIcon, MenuIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { useAuth } from '../../../context/AuthContext'; // Import useAuth hook
 
 // Firebase imports
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -15,6 +16,7 @@ interface VendorLayoutProps {
 }
 
 const VendorLayout = ({ children }: VendorLayoutProps) => {
+  const { user } = useAuth(); // Get the authenticated user from AuthContext
   const pathname = usePathname();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [vendorInitials, setVendorInitials] = useState('JD'); // Default to 'JD' if no name is found
@@ -29,15 +31,15 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
     return pathname?.startsWith(path);
   };
 
-  // Get vendor initials from user data stored in localStorage
+  // Get vendor initials from user data stored in localStorage (fallback for initial render)
   useEffect(() => {
     const userData = localStorage.getItem('userData');
     if (userData) {
       try {
         const parsedData = JSON.parse(userData);
-        const fullName = `${parsedData.username} ${parsedData.othername}`;
+        const fullName = `${parsedData.username || ''} ${parsedData.othername || ''}`;
         // Get first two letters of the full name
-        const initials = fullName.substring(0, 2).toUpperCase();
+        const initials = fullName.trim() ? fullName.substring(0, 2).toUpperCase() : 'JD';
         setVendorInitials(initials);
         
         // Set profile image if it exists in user data
@@ -46,70 +48,67 @@ const VendorLayout = ({ children }: VendorLayoutProps) => {
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
+        // Set default values if there's an error parsing localStorage data
+        setVendorInitials('JD');
+        setVendorProfileImage(null);
       }
+    } else {
+      // Set default values if there's no localStorage data
+      setVendorInitials('JD');
+      setVendorProfileImage(null);
     }
   }, []);
 
   // Fetch vendor data from Firestore to ensure we have the latest profile image
   useEffect(() => {
-    // We need to get the user ID from localStorage or context
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-      try {
-        const parsedData = JSON.parse(userData);
-        const userId = parsedData.uid;
-        
-        if (userId) {
-          // Set up real-time listener for user data changes
-          const userDocRef = doc(db, 'users', userId);
-          const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-              const userData = docSnap.data();
-              // Get vendor initials from username and othername
-              const fullName = `${userData.username || ''} ${userData.othername || ''}`;
-              const initials = fullName.trim() ? fullName.substring(0, 2).toUpperCase() : 'JD';
-              setVendorInitials(initials);
-              
-              // Update profile image if it exists in Firestore
-              if (userData.profileImage && userData.profileImage !== 'null' && userData.profileImage !== 'undefined') {
-                setVendorProfileImage(userData.profileImage);
-              } else {
-                setVendorProfileImage(null);
-              }
-            }
-          }, (error) => {
-            console.error('Error listening to vendor data from Firestore:', error);
-          });
+    // Only set up the listener if we have an authenticated user
+    if (user) {
+      // Set up real-time listener for user data changes
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          // Get vendor initials from username and othername
+          const fullName = `${userData.username || ''} ${userData.othername || ''}`;
+          const initials = fullName.trim() ? fullName.substring(0, 2).toUpperCase() : 'JD';
+          setVendorInitials(initials);
           
-          // Clean up the listener when component unmounts
-          return () => unsubscribe();
+          // Update profile image if it exists in Firestore
+          if (userData.profileImage && userData.profileImage !== 'null' && userData.profileImage !== 'undefined') {
+            setVendorProfileImage(userData.profileImage);
+          } else {
+            setVendorProfileImage(null);
+          }
         }
-      } catch (error) {
-        console.error('Error setting up vendor data listener from Firestore:', error);
-      }
+      }, (error) => {
+        console.error('Error listening to vendor data from Firestore:', error);
+      });
+      
+      // Clean up the listener when component unmounts
+      return () => unsubscribe();
     }
-  }, []);
+  }, [user]); // Re-run when the user changes
 
-  // Listen for profile image updates
-  useEffect(() => {
-    const handleProfileImageUpdate = (event: CustomEvent) => {
-      const profileImage = event.detail.profileImage;
-      // Only update if profileImage is not null/undefined/empty
-      if (profileImage && profileImage !== 'null' && profileImage !== 'undefined') {
-        setVendorProfileImage(profileImage);
-      } else {
-        setVendorProfileImage(null);
-      }
-    };
-
-    // Add event listener for profile image updates
-    window.addEventListener('profileImageUpdated', handleProfileImageUpdate as EventListener);
-    
-    // Clean up event listener
-    return () => {
-      window.removeEventListener('profileImageUpdated', handleProfileImageUpdate as EventListener);
-    };
-  }, []);
+  // Listen for profile image updates (no longer needed as we use real-time listener from Firestore)
+  // useEffect(() => {
+  //   const handleProfileImageUpdate = (event: CustomEvent) => {
+  //     const profileImage = event.detail.profileImage;
+  //     // Only update if profileImage is not null/undefined/empty
+  //     if (profileImage && profileImage !== 'null' && profileImage !== 'undefined') {
+  //       setVendorProfileImage(profileImage);
+  //     } else {
+  //       setVendorProfileImage(null);
+  //     }
+  //   };
+  //
+  //   // Add event listener for profile image updates
+  //   window.addEventListener('profileImageUpdated', handleProfileImageUpdate as EventListener);
+  //   
+  //   // Clean up event listener
+  //   return () => {
+  //     window.removeEventListener('profileImageUpdated', handleProfileImageUpdate as EventListener);
+  //   };
+  // }, []);
 
   // Close mobile menu when navigating
   const handleNavigation = () => {
