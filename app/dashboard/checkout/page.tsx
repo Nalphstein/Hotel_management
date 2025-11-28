@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { db } from '../../../lib/firebase/config';
 import { collection, addDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { useAlert } from '../../context/AlertContext';
 
 // --- Import the Paystack clone modal component ---
 import PaystackCloneModal from '../../components/PaystackCloneModal';
@@ -116,6 +117,7 @@ async function createOrderInFirestore(user: any, item: any): Promise<string> {
 export default function CheckoutPage() {
   const { item } = useCheckout(); // Get the item to be purchased from our global context
   const { user } = useAuth();     // Get the current logged-in user
+  const { showAlert } = useAlert(); // Add this line to use the alert context
   const router = useRouter();
 
   // --- State Management for the checkout flow ---
@@ -157,7 +159,7 @@ export default function CheckoutPage() {
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      alert(errorMessage);
+      showAlert(errorMessage, "error"); // Use custom alert instead of native alert
       setIsCreatingOrder(false); // Reset loading state on error
     }
   };

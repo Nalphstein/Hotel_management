@@ -4,6 +4,7 @@ import { FilterIcon, SettingsIcon, DownloadIcon, EditIcon, TrashIcon } from 'luc
 
 // --- Imports for Firebase and Authentication ---
 import { useAuth } from '../../../context/AuthContext'; // Adjust path as needed
+import { useAlert } from '../../context/AlertContext'; // Add this import
 import { db } from '../../../lib/firebase/config';      // Adjust path as needed
 import { collection, query, where, orderBy, limit, onSnapshot, doc, deleteDoc, Timestamp } from 'firebase/firestore';
 
@@ -46,6 +47,7 @@ interface ProductTransactionTableProps {
 // Update component to accept props
 const ProductTransactionTable = ({ transactions }: ProductTransactionTableProps) => {
   const { user } = useAuth(); // Get the current authenticated vendor from our context
+  const { showAlert } = useAlert(); // Add this line to use the alert context
   
   // --- State Management ---
   // Only use internal state if no transactions prop is provided
@@ -106,7 +108,7 @@ const ProductTransactionTable = ({ transactions }: ProductTransactionTableProps)
         // detect the deletion and re-render the component with the item removed.
     } catch (error) {
         console.error("Error deleting transaction: ", error);
-        alert("Failed to delete transaction.");
+        showAlert("Failed to delete transaction.", "error"); // Use custom alert instead of native alert
     }
   }
 

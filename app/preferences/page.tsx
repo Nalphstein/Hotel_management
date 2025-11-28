@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useAlert } from '../context/AlertContext'; // Add this import
 // 1. Import Firebase services and types
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -7,6 +8,7 @@ import { auth, db } from '../../lib/firebase/config'; // Adjust path if needed
 
 export default function PreferencesPage() {
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
+  const { showAlert } = useAlert(); // Add this line to use the alert context
   
   // 2. Add state for user, loading, and submission status
   const [user, setUser] = useState<User | null>(null);
@@ -86,7 +88,7 @@ export default function PreferencesPage() {
 
     } catch (error) {
       console.error("Error saving preferences:", error);
-      alert("Could not save your preferences. Please try again."); // Provide user feedback
+      showAlert("Could not save your preferences. Please try again.", "error"); // Use custom alert instead of native alert
     } finally {
       setIsSubmitting(false);
     }

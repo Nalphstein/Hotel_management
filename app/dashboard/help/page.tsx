@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useAlert } from '../../context/AlertContext';
 
 // --- Imports for Firebase ---
 import { db } from '../../../lib/firebase/config'; // Adjust this path if necessary
@@ -68,7 +69,8 @@ export default function HelpPage() {
   }, []); // The empty dependency array ensures this runs only once
 
   // --- Filtering and UI Logic ---
-  
+  const { showAlert } = useAlert();
+
   // Filter the FAQs based on the active category and search query
   const filteredFAQs = allFAQs.filter(faq => {
     const matchesCategory = activeCategory === 'Getting Started' || faq.category === activeCategory;
@@ -114,8 +116,8 @@ export default function HelpPage() {
   // Function to copy text to clipboard
   const copyToClipboard = (text: string, title: string) => {
     navigator.clipboard.writeText(text);
-    // Show feedback to user
-    alert(`${title} copied to clipboard: ${text}`);
+    // Show feedback to user using custom alert
+    showAlert(`${title} copied to clipboard: ${text}`, "info");
     // Close tooltip after copying
     setShowTooltip({});
   };

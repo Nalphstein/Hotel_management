@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAlert } from '../context/AlertContext';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -9,6 +10,8 @@ export default function ContactPage() {
     subject: '',
     message: ''
   });
+  
+  const { showAlert } = useAlert();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -22,7 +25,7 @@ export default function ContactPage() {
     e.preventDefault();
     // Handle form submission
     console.log('Form submitted:', formData);
-    alert('Thank you for your message! We will get back to you soon.');
+    showAlert('Thank you for your message! We will get back to you soon.', 'success');
     setFormData({ name: '', email: '', subject: '', message: '' });
   };
 

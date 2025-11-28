@@ -4,6 +4,7 @@ import { SearchIcon, FilterIcon, ArrowUpDownIcon, EyeIcon, DownloadIcon } from '
 
 // --- Imports for Firebase and Authentication ---
 import { useAuth } from '../../../context/AuthContext';
+import { useAlert } from '../../context/AlertContext'; // Add this import
 import { db } from '../../../lib/firebase/config';
 import { collection, query, where, onSnapshot, doc, updateDoc, orderBy, Timestamp, getDoc } from 'firebase/firestore';
 
@@ -45,6 +46,7 @@ interface TransactionData {
 const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] }) => {
   console.log("OrdersComponent rendered");
   const { user } = useAuth(); // Get the current authenticated vendor
+  const { showAlert } = useAlert(); // Add this line to use the alert context
   console.log("Current user:", user);
 
   // --- State Management ---
@@ -149,7 +151,7 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
       const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
       if (!validStatuses.includes(newStatus)) {
         console.error("Invalid status:", newStatus);
-        alert("Invalid status selected.");
+        showAlert("Invalid status selected.", "warning"); // Use custom alert instead of native alert
         return;
       }
       
@@ -162,9 +164,9 @@ const OrdersComponent = ({ transactions }: { transactions?: TransactionData[] })
       console.error("Error updating order status:", error);
       if (error.code === 'permission-denied') {
         console.error("Permission denied when updating order status");
-        alert("You don't have permission to update this order status.");
+        showAlert("You don't have permission to update this order status.", "error"); // Use custom alert instead of native alert
       } else {
-        alert("Failed to update order status.");
+        showAlert("Failed to update order status.", "error"); // Use custom alert instead of native alert
       }
     }
   };

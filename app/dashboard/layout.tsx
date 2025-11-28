@@ -11,6 +11,7 @@ import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/fire
 
 // --- Component Imports ---
 import Footer from '../components/Footer'; // Make sure the path is correct
+import { useAlert } from '../context/AlertContext'; // Add this import
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default function DashboardLayout({
 }) {
   // Get the authenticated user from our global context
   const { user } = useAuth(); 
+  const { showAlert } = useAlert(); // Add this line to use the alert context
   
   // Next.js hooks for navigation and path detection
   const router = useRouter();
@@ -67,7 +69,7 @@ export default function DashboardLayout({
       router.push('/'); // Redirect to the homepage after successful logout
     } catch (error) {
       console.error("Error signing out: ", error);
-      alert("Failed to log out. Please try again.");
+      showAlert("Failed to log out. Please try again.", "error"); // Use custom alert instead of native alert
     }
   };
 

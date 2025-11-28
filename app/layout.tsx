@@ -5,6 +5,7 @@ import ConditionalNavigation from "./components/ConditionalNavigation";
 import ConditionalFooter from "./components/ConditionalFooter";
 import { AuthProvider } from "../context/AuthContext";
 import { CheckoutProvider } from '../context/CheckoutContext';
+import { AlertProvider } from './context/AlertContext';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +34,11 @@ export default function RootLayout({
       >
       <AuthProvider>
       <CheckoutProvider>
+      <AlertProvider>
         <ConditionalNavigation />
         <main>{children}</main>
         <ConditionalFooter />
+      </AlertProvider>
       </CheckoutProvider>
         </AuthProvider>
       </body>

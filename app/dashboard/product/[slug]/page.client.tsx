@@ -7,6 +7,7 @@ import Link from 'next/link';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import { useCheckout } from '../../../../context/CheckoutContext'; // Hook to initiate the checkout flow
 import { useAuth } from '../../../../context/AuthContext'; // Hook to get the current user
+import { useAlert } from '../../../context/AlertContext'; // Fixed import path
 import { db } from '../../../../lib/firebase/config';
 import { collection, query, where, getDocs, limit, doc, getDoc, orderBy, addDoc, updateDoc } from 'firebase/firestore';
 
@@ -60,6 +61,7 @@ export default function ProductDetailClient() {
 
   const { initiateCheckout } = useCheckout(); // Get the function to start the checkout process
   const { user } = useAuth(); // Get the current authenticated user
+  const { showAlert } = useAlert(); // Add this line to use the alert context
 
   // --- State Management ---
   const [product, setProduct] = useState<Product | null>(null);
@@ -208,12 +210,12 @@ export default function ProductDetailClient() {
     if (!user || !product) return;
 
     if (userRating === 0) {
-      alert("Please select a star rating");
+      showAlert("Please select a star rating", "warning");
       return;
     }
 
     if (userReview.trim() === '') {
-      alert("Please enter a review comment");
+      showAlert("Please enter a review comment", "warning");
       return;
     }
 
@@ -260,10 +262,10 @@ export default function ProductDetailClient() {
       setUserReview('');
 
       console.log("Review submitted successfully");
-      alert("Thank you! Your review has been submitted successfully.");
+      showAlert("Thank you! Your review has been submitted successfully.", "success");
     } catch (error) {
       console.error("Error submitting review:", error);
-      alert("Failed to submit review. Please try again.");
+      showAlert("Failed to submit review. Please try again.", "error");
     } finally {
       setIsSubmittingReview(false);
     }
