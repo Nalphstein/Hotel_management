@@ -178,7 +178,7 @@ export default function DashboardPage() {
                   <div className="mb-3 sm:mb-4">
                     <span className="text-base sm:text-lg font-bold text-gray-900">Starting from {formatPrice(featuredProduct.price)}</span>
                   </div>
-                  <Link href={`/product/${featuredProduct.slug}`}>
+                  <Link href={`/dashboard/product/${featuredProduct.slug}`}>
                     <button className="bg-gray-800 text-white px-4 py-2 sm:px-6 sm:py-2 rounded-lg hover:bg-gray-700 transition-colors">
                       Get it now!
                     </button>
@@ -226,7 +226,7 @@ export default function DashboardPage() {
               {products.map((product) => (
                 <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                   <div className="h-48 bg-gray-100">
-                    <Link href={`/product/${product.slug}`}><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></Link>
+                    <Link href={`/dashboard/product/${product.slug}`}><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></Link>
                   </div>
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>

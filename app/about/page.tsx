@@ -6,9 +6,9 @@ export default function AboutPage() {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">About Horizon</h1>
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">About Horizon: Your Campus Marketplace</h1>
           <p className="mt-3 text-xl text-gray-500 max-w-3xl mx-auto">
-            We're on a mission to revolutionize how businesses manage their operations through innovative technology solutions.
+            Welcome to Horizon, the digital heartbeat of student commerce.
           </p>
         </div>
 
@@ -19,21 +19,17 @@ export default function AboutPage() {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">Our Story</h2>
                   <p className="text-gray-600 mb-4">
-                    Founded in 2020, Horizon began with a simple idea: technology should empower businesses, not complicate them. 
-                    What started as a small team of passionate developers has grown into a company that serves thousands of 
-                    businesses worldwide.
+                   Founded in 2025, Horizon was created to solve a simple, frustrating problem: limited access. We recognized that the traditional, physical campus markets only happen a few times a semester, leaving student vendors and customers disconnected the rest of the time.
                   </p>
                   <p className="text-gray-600 mb-4">
-                    Our platform was built from the ground up to address the real challenges faced by modern businesses. 
-                    We believe in creating intuitive solutions that save time, reduce costs, and drive growth.
+                   We are a dedicated online marketplace designed to keep the commerce flowing. We provide student vendors with a 24/7 digital storefront and give student customers a single, reliable place to find goods and services right on campus.
                   </p>
                   <p className="text-gray-600">
-                    Today, we continue to innovate and expand our offerings, staying true to our core values of simplicity, 
-                    reliability, and customer-first thinking.
+                    Horizon is committed to fostering a strong, independent student economy. We're not just bridging the gap; we're creating a permanent, convenient pathway for every student exchange.
                   </p>
                 </div>
                 <div className="flex justify-center">
-                  <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-96" />
+                  {/* <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-96" /> */}
                 </div>
               </div>
             </div>

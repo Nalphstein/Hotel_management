@@ -98,7 +98,7 @@ function SearchContent() {
                 <div className="p-3 sm:p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-base sm:text-lg font-bold text-gray-900">{formatPrice(product.price)}</span>
-                    <Link href={`/product/${product.slug}`}>
+                    <Link href={`/dashboard/product/${product.slug}`}>
                       <button className="bg-gray-800 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg hover:bg-gray-700 transition-colors text-xs sm:text-sm">
                         Buy now
                       </button>

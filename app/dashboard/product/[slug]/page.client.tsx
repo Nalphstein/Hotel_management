@@ -75,6 +75,8 @@ export default function ProductDetailClient() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [totalReviews, setTotalReviews] = useState<number>(0);
+  // Add new state for reviews pagination
+  const [visibleReviewsCount, setVisibleReviewsCount] = useState(4); // Show 4 reviews initially
 
   // --- Data Fetching Effect ---
   // Fetches the specific product from Firestore based on the 'slug' from the URL
@@ -568,30 +570,41 @@ disabled = { isSubmittingReview }
       </div>
                 )}
 
-{/* Reviews List */ }
+{/* Reviews List */}
 {
   reviews.length > 0 ? (
-    <div className= "space-y-6" >
-    {
-      reviews.map((review) => (
-        <div key= { review.id } className = "border-b border-gray-200 pb-6 last:border-0 last:pb-0" >
-        <div className="flex justify-between mb-2" >
-      <div className="font-medium text-gray-900" > { review.userName } </div>
-      < div className = "text-sm text-gray-500" >
-      { review.timestamp.toDate ? review.timestamp.toDate().toLocaleDateString() : new Date(review.timestamp).toLocaleDateString() }
-      </div>
-      </div>
-      < div className = "mb-2" >
-      <StarRating rating={ review.rating } />
-      </div>
-      < p className = "text-gray-700" > { review.comment } </p>
-      </div>
-      ))
-    }
+    <div className="space-y-6">
+      {
+        reviews.slice(0, visibleReviewsCount).map((review) => (
+          <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0 last:pb-0">
+            <div className="flex justify-between mb-2">
+              <div className="font-medium text-gray-900">{review.userName}</div>
+              <div className="text-sm text-gray-500">
+                {review.timestamp.toDate ? review.timestamp.toDate().toLocaleDateString() : new Date(review.timestamp).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="mb-2">
+              <StarRating rating={review.rating} />
+            </div>
+            <p className="text-gray-700">{review.comment}</p>
+          </div>
+        ))
+      }
+      {/* Show More Button */}
+      {reviews.length > visibleReviewsCount && (
+        <div className="text-center mt-6">
+          <button
+            onClick={() => setVisibleReviewsCount(prev => prev + 4)}
+            className="px-4 py-2 bg-gray-800 text-white rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
+          >
+            Show More Reviews
+          </button>
+        </div>
+      )}
     </div>
-                ) : (
-    <p className= "text-gray-500 text-center py-4" > No reviews yet.Be the first to review this product! </p>
-                )
+  ) : (
+    <p className="text-gray-500 text-center py-4">No reviews yet. Be the first to review this product!</p>
+  )
 }
 </div>
 
