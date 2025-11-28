@@ -91,9 +91,59 @@ export default function HelpPage() {
   // Static data for support options, as this rarely changes
   const supportOptions = [
     { title: 'Live Chat', description: 'Chat with our support team in real-time', icon: '💬', action: 'Start Chat', available: true },
-    { title: 'Phone Support', description: 'Call us directly for immediate assistance', icon: '📞', action: 'Call Now', available: true },
-    { title: 'Email Support', description: 'Send us an email and we\'ll respond within 24 hours', icon: '📧', action: 'Send Email', available: true }
+    { title: 'Phone Support', description: 'Call us directly for immediate assistance', icon: '📞', action: 'Call Now', available: true, contact: '+234 806 311 544' },
+    { title: 'Email Support', description: 'Send us an email and we\'ll respond within 24 hours', icon: '📧', action: 'Send Email', available: true, contact: 'support@horizon.com' }
   ];
+
+  // State for tooltips
+  const [showTooltip, setShowTooltip] = useState<{[key: string]: boolean}>({});
+
+  // Function to toggle tooltip visibility
+  const toggleTooltip = (title: string) => {
+    // Close all other tooltips first
+    const newShowTooltip = Object.keys(showTooltip).reduce((acc, key) => {
+      acc[key] = false;
+      return acc;
+    }, {} as {[key: string]: boolean});
+    
+    // Toggle the selected tooltip
+    newShowTooltip[title] = !showTooltip[title];
+    setShowTooltip(newShowTooltip);
+  };
+
+  // Function to copy text to clipboard
+  const copyToClipboard = (text: string, title: string) => {
+    navigator.clipboard.writeText(text);
+    // Show feedback to user
+    alert(`${title} copied to clipboard: ${text}`);
+    // Close tooltip after copying
+    setShowTooltip({});
+  };
+
+  // Close tooltips when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is outside any tooltip
+      const tooltips = document.querySelectorAll('.tooltip-container');
+      let isInsideTooltip = false;
+      
+      tooltips.forEach(tooltip => {
+        if (tooltip.contains(event.target as Node)) {
+          isInsideTooltip = true;
+        }
+      });
+      
+      // Close tooltips if click is outside
+      if (!isInsideTooltip && Object.keys(showTooltip).some(key => showTooltip[key])) {
+        setShowTooltip({});
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showTooltip]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -184,20 +234,45 @@ export default function HelpPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {supportOptions.map((option, index) => (
-                  <div key={index} className="bg-white rounded-lg border border-gray-200 p-6 text-center hover:shadow-md transition-shadow">
+                  <div key={index} className="bg-white rounded-lg border border-gray-200 p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div className="text-4xl mb-4">{option.icon}</div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{option.title}</h3>
                     <p className="text-gray-600 text-sm mb-4">{option.description}</p>
                     <button
-                      className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                      className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 ${
                         option.available
-                          ? 'bg-gray-800 text-white hover:bg-gray-700'
+                          ? 'bg-gray-800 text-white hover:bg-gray-700 hover:shadow-md transform hover:-translate-y-0.5'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       }`}
                       disabled={!option.available}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent closing tooltip when clicking button
+                        option.contact && toggleTooltip(option.title);
+                      }}
                     >
                       {option.action}
                     </button>
+                    {option.contact && showTooltip[option.title] && (
+                      <div className="relative tooltip-container">
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -translate-y-2 bg-gray-800 text-white text-sm rounded py-2 px-3 mb-2 shadow-lg z-10">
+                          <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-800 rotate-45"></div>
+                          <div className="flex items-center justify-between">
+                            <span className="mr-2">{option.contact}</span>
+                            <button
+                              className="text-gray-300 hover:text-white"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent closing tooltip when clicking copy button
+                                copyToClipboard(option.contact, option.title);
+                              }}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
